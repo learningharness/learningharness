@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,rm} from 'node:fs/promises';import {join} from 'node:path';import {tmpdir} from 'node:os';import {publishPrepared,readPrepared} from '../desktop-runtime/prepared-invitation.mjs';
+test('each invitation retains its own topic and sources, never a newer or another chat target',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'lh-prepared-')),chat='12345678-1234-1234-1234-123456789abc',other='22345678-1234-1234-1234-123456789abc';
+ try{const target={kind:'goal',goal:{outcome:'Reading queue writes',insight:'Original teaching content'},snapshot:[{id:'original'}]};const first=publishPrepared(dir,chat,target);target.goal.outcome='New topic';target.goal.insight='New teaching content';const second=publishPrepared(dir,chat,target);
+ assert.equal(readPrepared(dir,chat,first.id).title,'Reading queue writes');assert.equal(readPrepared(dir,chat,first.id).goal.insight,'Original teaching content');assert.equal(readPrepared(dir,chat,second.id).title,'New topic');assert.throws(()=>readPrepared(dir,other,first.id));assert.throws(()=>readPrepared(dir,chat,'../bad'));}finally{await rm(dir,{recursive:true,force:true});}
+});

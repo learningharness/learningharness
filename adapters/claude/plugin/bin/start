@@ -1,0 +1,21 @@
+#!/bin/zsh
+# GUI apps often lack the user's interactive-shell PATH.
+set -eu
+plugin_root="${0:A:h:h}"
+export DONTDUMB_HOST=claude
+node_candidates=(
+  "${DONTDUMB_NODE_BIN:-/nonexistent}"
+  "$(command -v node || true)"
+  /opt/homebrew/bin/node
+  /usr/local/bin/node
+  /Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node
+  /Applications/Codex.app/Contents/Resources/cua_node/bin/node
+  "$HOME"/.nvm/versions/node/*/bin/node(N)
+)
+for node_bin in "${node_candidates[@]}"; do
+  if [[ -x "$node_bin" ]] && "$node_bin" -e 'process.exit(Number(process.versions.node.split(".")[0]) < 22 ? 1 : 0)' >/dev/null 2>&1; then
+    exec "$node_bin" "$plugin_root/bin/dontdumb.mjs" "$@"
+  fi
+done
+print -u2 'DontDumb needs Node 22+. No compatible runtime was found in PATH, standard installations, or the desktop app. Ask Claude to help install Node; do not create an API key.'
+exit 1

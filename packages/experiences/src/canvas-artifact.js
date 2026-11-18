@@ -1,0 +1,17 @@
+import {parse,serialize} from 'parse5';
+import {exactObject,nonEmptyString} from '../../protocol/src/validation.js';
+// Executable educational artifacts belong in a separate opaque-origin iframe.
+// Validation bounds/normalizes the document; isolation is enforced by both frames' CSP and sandbox.
+const deniedTags=new Set(['iframe','frame','frameset','object','embed','base','link','meta','form','input','textarea']);
+export function validateCanvasArtifact(value){
+ exactObject(value,['format','title','html','height'],['format','title','html']);
+ if(value.format!=='canvas')throw Error('Expected a canvas artifact');
+ nonEmptyString(value.title,'$.title',80);nonEmptyString(value.html,'$.html',28000);
+ const height=value.height??500;if(!Number.isInteger(height)||height<280||height>720)throw Error('Canvas height must be 280–720');
+ const tree=parse(value.html);let nodes=0,hasScript=false,hasVisual=false;
+ function walk(node,depth=0){if(++nodes>1000||depth>35)throw Error('Canvas document exceeds bounds');if(deniedTags.has(node.tagName))throw Error('Embedded pages, forms and external assets are unavailable in learning artifacts');if(node.tagName==='script'){hasScript=true;if(node.attrs.length)throw Error('Only inline learning scripts are supported');}if(['canvas','svg'].includes(node.tagName))hasVisual=true;for(const a of node.attrs??[])if(['src','href','action','formaction','srcdoc','target','download','ping'].includes(a.name))throw Error('External resources and navigation are unavailable');for(const child of node.childNodes??[])walk(child,depth+1);}
+ walk(tree);if(!hasScript||!hasVisual)throw Error('An interactive needs a visual and an inline interaction script');
+ return {format:'canvas',title:value.title,html:serialize(tree),height};
+}
+export function canvasFrame(value){const safe=validateCanvasArtifact(value);const policy="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; font-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";return safe.html.replace(/<head>/i,`<head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><meta name="viewport" content="width=device-width,initial-scale=1">`);}
+export const canvasArtifactInstructions=`Build a bespoke hands-on educational simulation, not a slideshow, prebuilt Play/Next scaffold or prose dashboard. Return the artifact itself as JSON only, with no spec wrapper or extra keys: {format:"canvas",title:"short",html:"complete self-contained HTML with inline CSS and JS",height:500}. Draw a spatial mechanism using Canvas2D or SVG. Invent only the controls that teach this particular mechanism: direct dragging, toggles, a dial, a scrubber, fault injection, observation/prediction. Show cause and effect immediately. Use a responsive dark background, readable labels, restrained violet/cyan accents. requestAnimationFrame animations must be modest and respect reduced motion. Use no dependencies, links, images, fetch, storage, workers, network or parent/window communication. No iframe, form, input or textarea tags; use buttons, pointer events or custom drawn controls. Inline script only, with no script attributes. Target 4500–7000 characters total. Mark model-based examples as illustrative; do not claim actual repo execution. Never reveal an unanswered quiz answer.`;

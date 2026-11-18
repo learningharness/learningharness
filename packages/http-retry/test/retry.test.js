@@ -1,0 +1,9 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createRetryFetch} from '../dist/src.js';
+for (const status of [429,502,503,504]) test(`retries ${status}`,async()=>{let n=0;const waits=[];const f=createRetryFetch({fetch:async()=>new Response('',{status:++n===1?status:200}),sleep:async ms=>{waits.push(ms)},random:()=>0.5});assert.equal((await f('https://example.com')).status,200);assert.deepEqual(waits,[125]);});
+test('network retry budget and exponential cap',async()=>{let n=0;const waits=[];const f=createRetryFetch({fetch:async()=>{n++;throw new TypeError('network')},sleep:async ms=>{waits.push(ms)},random:()=>0.5,maxDelayMs:300});await assert.rejects(f('https://example.com'));assert.equal(n,4);assert.deepEqual(waits,[125,150,150]);});
+for(const method of ['POST','PATCH']) test(`never retries ${method}`,async()=>{let n=0;const f=createRetryFetch({fetch:async()=>{n++;return new Response(null,{status:503})}});await f('https://example.com',{method});assert.equal(n,1)});
+test('Retry-After seconds and date',async()=>{for(const header of ['2','Thu, 01 Jan 1970 00:00:02 GMT']){const waits=[];let n=0;const f=createRetryFetch({fetch:async()=>new Response(null,{status:++n===1?503:200,headers:{'Retry-After':header}}),sleep:async ms=>{waits.push(ms)},now:()=>0,random:()=>0});await f('https://example.com');assert.deepEqual(waits,[2000])}});
+test('abort interrupts injected wait',async()=>{const c=new AbortController();const f=createRetryFetch({fetch:async()=>new Response(null,{status:503}),sleep:()=>{queueMicrotask(()=>c.abort());return new Promise(()=>{})}});await assert.rejects(f('https://example.com',{signal:c.signal}),{name:'AbortError'})});
+test('pre-aborted request never fetches',async()=>{const f=createRetryFetch({fetch:async()=>{assert.fail('called')}});await assert.rejects(f('https://example.com',{signal:AbortSignal.abort()}),{name:'AbortError'})});

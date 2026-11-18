@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>The thesis | LearningHarness</title>
+  <meta name="description" content="AI can extend what you produce faster than what you understand. Our thesis: build a parallel learning flow that invests in the developer, alongside the work.">
+  <link rel="canonical" href="https://learningharness.dev/thesis/">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/assets/landing.css?v=20261110-film-rounded">
+  <link rel="stylesheet" href="/assets/thesis.css?v=20261111-connected-thesis">
+</head>
+<body class="thesis">
+<a class="skip-docs" href="#content">Skip to content</a>
+<div class="wrap">
+  <header>
+    <a class="brand" href="/"><img class="brand-mark" src="/assets/mark.svg" width="28" height="28" alt="">LearningHarness</a>
+    <nav aria-label="Main"><a href="/thesis/" aria-current="page">The thesis</a><a href="/docs/">Docs</a><a class="nav-install" href="/#try">Get started <span>↗</span></a></nav>
+  </header>
+  <main id="content">
+    <section class="thesis-intro">
+      <p class="kicker">Our understanding of the problem</p>
+      <h1>Your reach grows.<br><span>Your understanding can lag.</span></h1>
+      <p class="intro-deck">AI can carry work beyond what you know. Following its explanation doesn’t mean you can reason through it yourself.</p>
+      <nav class="thesis-contents" aria-label="On this page"><a href="#learning-gap">The learning gap ↓</a><a href="#thesis">The thesis ↓</a><a href="#approach">Our approach ↓</a></nav>
+    </section>
+
+    <section class="learning-model" id="learning-gap" aria-label="Explore the learning gap">
+      <h2 class="model-title">A fresh look at Vygotsky’s<br>zone of proximal development.</h2>
+      <div class="model-layout">
+        <div class="model-visual">
+        <div class="cosmic-field">
+          <canvas id="learning-field" width="960" height="820" aria-hidden="true"></canvas>
+          <div class="field-fallback" aria-hidden="true"><div class="outer-orbit"></div><div class="learning-orbit"></div><div class="inner-core"></div></div>
+          <p class="beyond-label">Not yet within reach</p>
+          <svg class="zpd-arc" viewBox="0 0 1000 1000" role="img" aria-label="What I can learn with guidance: zone of proximal development"><defs><path id="zpd-arc-path" d="M 285 500 A 215 215 0 0 1 715 500"/><path id="zpd-arc-bottom" d="M 265 500 A 235 235 0 0 0 735 500"/></defs><text><textPath href="#zpd-arc-path" startOffset="50%" text-anchor="middle">What I can learn with guidance</textPath></text><text><textPath href="#zpd-arc-bottom" startOffset="50%" text-anchor="middle">Zone of proximal development</textPath></text></svg>
+          <div class="core-label">What I know</div>
+        </div>
+        <div class="field-caption"><p data-state="gap">With AI, without understanding</p></div>
+        <p class="task-legend"><span class="task-streak" aria-hidden="true"></span><span>A task I can complete</span></p>
+        <div class="model-mode" aria-live="off">
+          <div data-state="guided"><h3>How learning used to work</h3><p class="mode-subtitle">You work through unfamiliar ideas with guidance. What once needed help becomes your own understanding, and the core expands.</p></div>
+          <div data-state="gap"><h3>How learning while delegating to AI is working</h3><p class="mode-subtitle">AI can finish work beyond what you understand. Without working through those ideas yourself, your independent ability can stay still as your output grows.</p></div>
+          <div data-state="alongside"><h3>How learning with LearningHarness while delegating to AI works</h3><p class="mode-subtitle">AI keeps doing the work. LearningHarness brings back guided reasoning and practice alongside it, giving you a way to turn assisted reach into your own understanding.</p></div>
+        </div>
+        <div class="model-controls">
+          <fieldset class="model-choice">
+            <legend class="sr-only">Choose a view of the learning gap</legend>
+            <label><input id="view-guided" type="radio" name="learning-view" value="guided" checked><span class="sr-only">Learning with guidance</span><i aria-hidden="true"></i></label>
+            <label><input id="view-gap" type="radio" name="learning-view" value="gap"><span class="sr-only">When AI crosses the gap</span><i aria-hidden="true"></i></label>
+            <label><input id="view-alongside" type="radio" name="learning-view" value="alongside"><span class="sr-only">With LearningHarness: building your understanding</span><i aria-hidden="true"></i></label>
+          </fieldset>
+          <button class="model-pause" type="button" aria-label="Pause automatic sequence">Pause</button>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="quiet-gap" id="thesis">
+      <h2>The missing step<br>is your own reasoning.</h2>
+      <div class="editorial-copy">
+        <p>Guidance helps you work beyond what you can do alone. Working through that zone can turn supported ability into independent understanding.</p>
+        <p>AI can deliver the result without that step. Following its explanation may feel like understanding. Can you still reason through it when one condition changes?</p>
+      </div>
+    </section>
+
+    <section class="quiet-gap" id="approach">
+      <h2>Make that reach<br>your own.</h2>
+      <div class="editorial-copy">
+        <p>LearningHarness brings guided learning back alongside work that AI can finish without you.</p>
+        <ol class="learning-steps">
+          <li><strong>Find a next step.</strong> Relevant work and learning history help LH notice an opportunity before you think to ask.</li>
+          <li><strong>Reason through it.</strong> Guided teaching, a changed case and feedback make room for your own thinking.</li>
+          <li><strong>Return to it.</strong> Saved attempts help shape later practice.</li>
+        </ol>
+        <p class="approach-boundary">Your coding agent keeps working. LH reads the work; it doesn’t edit it or send your practice answers back. You choose when to learn.</p>
+        <a class="button" href="/docs/agent-install/">Explore LearningHarness <span>↗</span></a>
+      </div>
+    </section>
+
+    <details class="research-notes" id="research"><summary>The ideas behind the thesis</summary><p>Lev Vygotsky’s zone of proximal development concerns what a learner can do with guidance beyond their independent ability. We use it as a lens for product design, not a measurement of adult developer expertise.</p><ul><li><a href="https://www.cambridge.org/core/books/abs/dialogic-inquiry/zone-of-proximal-development-and-its-implications-for-learning-and-teaching/EC2BDF2CDE813870D9545362734315EB">Gordon Wells on Vygotsky’s zone of proximal development</a></li><li><a href="https://pubmed.ncbi.nlm.nih.gov/25910388/">Soderstrom and Bjork: learning versus performance</a></li><li><a href="https://pubmed.ncbi.nlm.nih.gov/21252317/">Karpicke and Blunt: retrieval practice and meaningful learning</a></li><li><a href="https://www.anthropic.com/research/AI-assistance-coding-skills">Anthropic: AI assistance and coding-skill formation</a></li><li><a href="https://x.com/addyosmani/status/2117512471930167377">Addy Osmani on critical thinking with agents</a></li></ul><p>These sources inform our understanding of the problem. They are not evaluations or endorsements of LearningHarness.</p></details>
+  </main>
+  <footer><a class="brand" href="/"><img class="brand-mark" src="/assets/mark.svg" width="28" height="28" alt="">LearningHarness</a><div><a href="/docs/">Documentation</a><a href="/docs/privacy/">Privacy</a><a href="https://github.com/learningharness/learningharness">GitHub ↗</a></div></footer>
+</div>
+<script type="module" src="/assets/thesis.mjs?v=20261111-connected-thesis"></script>
+</body></html>

@@ -1,0 +1,27 @@
+#!/bin/zsh
+# GUI apps often lack the user's interactive-shell PATH.
+set -u
+plugin_root="${0:A:h:h}"
+export DONTDUMB_HOST=claude
+# Most tool completions have no invitation. Avoid starting Node in that case.
+state_dir="${LEARNING_HARNESS_STATE_DIR:-${DONTDUMB_STATE_DIR:-$HOME/.local/share/learning-harness/companion/${LEARNING_HARNESS_HOST:-${DONTDUMB_HOST:-codex}}}}"
+[[ -r "$state_dir/nudge.json" ]] || exit 0
+notice="$(<"$state_dir/nudge.json")" 2>/dev/null || exit 0
+[[ -n "$notice" && "$notice" != null ]] || exit 0
+node_candidates=(
+  "${DONTDUMB_NODE_BIN:-/nonexistent}"
+  "$(command -v node || true)"
+  /opt/homebrew/bin/node
+  /usr/local/bin/node
+  /Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node
+  /Applications/Codex.app/Contents/Resources/cua_node/bin/node
+  "$HOME"/.nvm/versions/node/*/bin/node(N)
+)
+for node_bin in "${node_candidates[@]}"; do
+  if [[ -x "$node_bin" ]] && "$node_bin" -e 'process.exit(Number(process.versions.node.split(".")[0]) < 22 ? 1 : 0)' >/dev/null 2>&1; then
+    "$node_bin" "$plugin_root/bin/nudge.mjs" "$@" 2>/dev/null || true
+    exit 0
+  fi
+done
+true
+exit 0

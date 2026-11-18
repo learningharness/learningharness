@@ -1,0 +1,21 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {desktopConfig,cliRequirement} from './install.mjs';
+test('candidate registration preserves unrelated Desktop settings and connectors',()=>{const old={theme:'dark',mcpServers:{other:{command:'keep'}}};const next=desktopConfig(old,{command:'node',args:['server.mjs']});assert.deepEqual(next.mcpServers.other,old.mcpServers.other);assert.equal(next.theme,'dark');assert(!old.mcpServers['learningharness-claude-candidate']);assert.match(cliRequirement,/active Claude subscription/);assert.match(cliRequirement,/normal browser flow/);});
+import {mkdtemp,mkdir,writeFile,readFile,rm,cp} from 'node:fs/promises';import {join} from 'node:path';import {tmpdir} from 'node:os';import {installCandidate} from './install.mjs';
+test('candidate install discloses auth, preserves config backup and configures hook root before plugin install',async t=>{
+ const home=await mkdtemp(join(tmpdir(),'lh-claude-install-'));t.after(()=>rm(home,{recursive:true,force:true}));const source=join(home,'source');await mkdir(join(source,'hooks'),{recursive:true});
+ await writeFile(join(source,'candidate.json'),JSON.stringify({version:'1.0.0-beta.1'}));await writeFile(join(source,'hooks/hooks.json'),JSON.stringify({hooks:{SessionStart:[{hooks:[{command:'node "${CLAUDE_PLUGIN_ROOT}/hook.mjs"'}]}]}}));
+ const configDir=join(home,'Library/Application Support/Claude');await mkdir(configDir,{recursive:true});const original=JSON.stringify({theme:'dark',mcpServers:{other:{command:'untouched'},'learningharness-claude-candidate':{command:'old-node',args:['/old-beta3/server.mjs']}}});await writeFile(join(configDir,'claude_desktop_config.json'),original);
+ for(const file of ['server.mjs','runtime-service.mjs','hook.mjs','view.html','register.mjs','entry-status.mjs'])await writeFile(join(source,file),'fixture '+file);
+ const calls=[];const result=await installCandidate({home,source,run:async(executable,args)=>{calls.push(args);if(args[1]==='install'){const hooks=JSON.parse(await readFile(join(home,'.local/share/learning-harness/claude-native-candidate/1.0.0-beta.1/plugin/hooks/hooks.json'),'utf8'));assert.match(hooks.hooks.SessionStart[0].hooks[0].command,/LEARNING_HARNESS_DATA_DIR=/);}if(args[1]==='list')return {stdout:JSON.stringify([{id:'learningharness@learningharness-claude-candidate',version:'1.0.0-beta.1',enabled:true,installPath:join(home,'.local/share/learning-harness/claude-native-candidate/1.0.0-beta.1/plugin')}])};}});
+ assert.equal(await readFile(result.backup,'utf8'),original);const next=JSON.parse(await readFile(join(configDir,'claude_desktop_config.json'),'utf8'));assert.deepEqual(next.mcpServers.other,{command:'untouched'});assert.equal(next.theme,'dark');assert.equal(next.mcpServers['learningharness-claude-candidate'].env.LEARNING_HARNESS_DATA_DIR,result.state);assert.equal(calls.length,4);assert.equal(next.mcpServers['learningharness-claude-candidate'].args[0],join(result.plugin,'server.mjs'));assert.equal(result.version,'1.0.0-beta.1');assert.equal(result.verified,true);assert.equal(result.desktopConnectorServer,join(result.plugin,'server.mjs'));
+});
+
+test('installer refuses to certify a stale registration or mismatched UI cache',async t=>{
+ for(const drift of ['version','view']){
+  const home=await mkdtemp(join(tmpdir(),'lh-claude-drift-'));t.after(()=>rm(home,{recursive:true,force:true}));const source=join(home,'source'),cache=join(home,'cache');await mkdir(join(source,'hooks'),{recursive:true});
+  await writeFile(join(source,'candidate.json'),JSON.stringify({version:'1.0.0-beta.1'}));await writeFile(join(source,'hooks/hooks.json'),JSON.stringify({hooks:{SessionStart:[{hooks:[{command:'placeholder'}]}]}}));
+  for(const name of ['server.mjs','runtime-service.mjs','hook.mjs','view.html','register.mjs','entry-status.mjs'])await writeFile(join(source,name),'current '+name);
+  await cp(source,cache,{recursive:true});if(drift==='view')await writeFile(join(cache,'view.html'),'stale UI');
+  await assert.rejects(installCandidate({home,source,run:async(_cli,args)=>args[1]==='list'?{stdout:JSON.stringify([{id:'learningharness@learningharness-claude-candidate',version:drift==='version'?'1.0.0-beta.0':'1.0.0-beta.1',enabled:true,installPath:cache}])}:({})}),/Do not report installation complete/);
+ }
+});

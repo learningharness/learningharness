@@ -1,0 +1,21 @@
+name: Idea or contribution proposal
+description: Discuss a learning problem or a contribution before building it
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would help the learner?
+      description: Give a concrete situation and the current difficulty.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Smallest useful version
+      description: Learning experience, tool, UX, settings, host support, evaluation or research.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: How could we tell whether it helps?

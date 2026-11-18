@@ -1,0 +1,13 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {runAgentCycle} from '../src/agent-cycle.js';import {parseExperience} from '../src/learning-engine.js';
+const flow={format:'flow',title:'Version check',participants:['Reader','Cache'],steps:[{title:'Remember version',body:'The read captures version 4.',from:0,to:1,states:['captured: 4','version: 4'],message:'GET begins',blocked:false},{title:'Reject old refill',body:'A write advanced the cache version to 5.',from:0,to:1,states:['captured: 4','version: 5'],message:'4 ≠ 5: rejected',blocked:true}]};
+const experience={decision:'offer',kind:'demonstrate',title:'Check a version before storing',objective:'Understand stale refills',relevance:'An in-flight GET can outlive invalidation.',body:'The read captures a version. A successful write advances it, so an older read cannot refill the cache.',question:'What if a later read captures the new version?',rubric:'A matching version permits storage.',hook:'Compare read and cache versions'};
+const {decision,kind,...teaching}=experience;
+const options={intent:'moment',prompt:'Prepare complete teaching and one probe',goal:{outcome:experience.objective},work:[{id:'task'}],validateExperience:x=>parseExperience(JSON.stringify(x)),check:()=>{},maxRequests:1};
+test('one terminal flow call publishes real teaching, a probe and locally compiled state transitions',async()=>{
+ let calls=0,builders=0;const result=await runAgentCycle({...options,build:async()=>{builders++;throw Error('Should not delegate')},request:async()=>{calls++;return JSON.stringify({tool:'present_flow',reason:'Show the state comparison directly',input:{...teaching,flow,sourceIds:['task']}})}});
+ assert.equal(calls,1);assert.equal(builders,0);assert.equal(result.experience.question,experience.question);assert.equal(result.experiment.format,'visual');assert.match(result.experiment.scenarios[0].steps[1].overlay,/version: 5/);assert.deepEqual(result.sourceIds,['task']);
+});
+test('inline flow cannot bypass source validation, objective validation or surface capabilities',async()=>{
+ for(const change of [{sourceIds:['unknown']},{objective:'Wrong topic'},{flow:{...flow,steps:flow.steps.map(s=>({...s,states:['incomplete']}))}}])await assert.rejects(runAgentCycle({...options,build:async()=>{},request:async()=>JSON.stringify({tool:'present_flow',reason:'Show the flow',input:{...teaching,flow,sourceIds:['task'],...change}})}));
+ await assert.rejects(runAgentCycle({...options,request:async()=>JSON.stringify({tool:'present_flow',reason:'Show the flow',input:{...teaching,flow,sourceIds:['task']}})}),/unavailable/);
+});

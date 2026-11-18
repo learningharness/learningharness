@@ -1,0 +1,22 @@
+name: Bug report
+description: Report something that is not working
+title: "[Bug]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include expected behavior and a minimal reproduction. Remove private code and learner data.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Host, OS and plugin version
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Redacted screenshot or synthetic example. Never paste credentials or raw personal logs.

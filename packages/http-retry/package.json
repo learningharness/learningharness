@@ -1,0 +1,1 @@
+{"name":"http-retry","private":true,"type":"module","scripts":{"test":"tsc -p tsconfig.json && node --test test/*.test.js"}}

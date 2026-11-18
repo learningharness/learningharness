@@ -1,0 +1,27 @@
+#!/bin/zsh
+# Finder installer. No credentials or other plugin settings are edited directly.
+set -eu
+umask 077
+source_root="${0:A:h:h}"
+version=0.1.0-beta.5
+marketplace_root="$HOME/.local/share/learning-harness/claude-plugins"
+install_root="$marketplace_root/$version"
+mkdir -p "$marketplace_root"
+log="$marketplace_root/install.log"
+open_bin="${DONTDUMB_OPEN_BIN:-/usr/bin/open}"
+fail() { print -r -- "$1" >> "$log"; "$open_bin" "$log"; exit 1; }
+claude_candidates=("${DONTDUMB_CLAUDE_BIN:-/nonexistent}" "$(command -v claude || true)" "$HOME/.local/bin/claude" /opt/homebrew/bin/claude /usr/local/bin/claude)
+claude_bin=''
+for candidate in "${claude_candidates[@]}"; do
+ if [[ -x "$candidate" ]]; then claude_bin="$candidate"; break; fi
+done
+[[ -n "$claude_bin" ]] || fail 'Install the Claude Code command for plugin registration, then open this installer again. Learning uses your existing local Code session; a separate terminal model sign-in is not required.'
+mkdir -p "$install_root"
+if [[ "$source_root" != "$install_root" ]]; then /bin/cp -R "$source_root/." "$install_root/" || fail 'Could not copy the local plugin.'; fi
+"$install_root/bin/migrate" >> "$log" 2>&1 || fail 'Could not safely remove the old DontDumb preview.'
+mkdir -p "$marketplace_root/.claude-plugin"
+print -r -- '{"name":"dontdumb-local","owner":{"name":"DontDumb"},"plugins":[{"name":"dontdumb","source":"./'"$version"'","description":"A local learning companion alongside Claude Code"}]}' > "$marketplace_root/.claude-plugin/marketplace.json"
+"$claude_bin" plugin marketplace add "$marketplace_root" > "$log" 2>&1 || fail 'Could not register the local DontDumb marketplace.'
+"$claude_bin" plugin install dontdumb@dontdumb-local >> "$log" 2>&1 || fail 'Could not install DontDumb. Existing plugins were preserved.'
+"$claude_bin" plugin update dontdumb@dontdumb-local >> "$log" 2>&1 || fail 'Could not update the installed DontDumb plugin. Existing data was preserved.'
+if [[ "${DONTDUMB_INSTALL_TEST:-}" != 1 ]]; then /usr/bin/osascript -e 'display dialog "DontDumb is installed. Start a new Claude Code session and choose the dontdumb command to open Learn." with title "DontDumb" buttons {"OK"} default button "OK"'; fi

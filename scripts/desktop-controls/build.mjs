@@ -1,0 +1,18 @@
+import {build as bundle} from 'esbuild';
+import {desktopConfig} from './config.mjs';
+import {desktopShortcutPolicy} from './shortcuts.mjs';
+const hostConfig=desktopConfig();
+import {mkdir,writeFile} from 'node:fs/promises';
+import {resolve,join} from 'node:path';
+import {execFileSync} from 'node:child_process';
+const output=resolve(process.env.LH_DESKTOP_OUTPUT??'artifacts/desktop-controls');
+const bridge=resolve(process.argv[2]??join(output,'desktop-controls.mjs'));
+if(!process.argv[2])await bundle({entryPoints:['scripts/desktop-controls/entry.mjs'],outfile:bridge,bundle:true,platform:'node',format:'esm',target:'node22'});
+const app=join(output,hostConfig.host==='claude'?'LearningHarness Claude Controls.app':'LearningHarness Controls.app'),contents=join(app,'Contents');
+await mkdir(join(contents,'MacOS'),{recursive:true});await mkdir(join(contents,'Resources'),{recursive:true});
+execFileSync('xcrun',['swiftc','-module-cache-path',join(output,'swift-cache'),'scripts/desktop-controls/Helper.swift','-o',join(contents,'MacOS','LearningHarnessControls'),'-framework','AppKit','-framework','Carbon']);
+const plist=value=>'<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict>'+Object.entries(value).map(([k,v])=>'<key>'+k+'</key>'+(typeof v==='boolean'?(v?'<true/>':'<false/>'):'<string>'+String(v).replaceAll('&','&amp;').replaceAll('<','&lt;')+'</string>')).join('')+'</dict></plist>';
+await writeFile(join(contents,'Info.plist'),plist({CFBundleIdentifier:process.env.LH_DESKTOP_TEST==='1'?(hostConfig.host==='claude'?'dev.learningharness.controls.test.claude':'dev.learningharness.controls.test'):hostConfig.host==='claude'?'dev.learningharness.controls.claude':'dev.learningharness.controls',CFBundleName:'LearningHarness Controls',CFBundleExecutable:'LearningHarnessControls',CFBundlePackageType:'APPL',CFBundleVersion:'1',LSUIElement:process.env.LH_DESKTOP_TEST!=='1'}));
+await writeFile(join(contents,'Resources','Bridge.plist'),plist({node:process.execPath,bridge,...hostConfig,shortcutPolicy:JSON.stringify(process.env.LH_DESKTOP_ENABLE_KEYS==='1'?desktopShortcutPolicy(hostConfig.host):{scope:'disabled',combos:[]}),diagnostics:process.env.LH_DESKTOP_DIAGNOSTICS==='1'?'1':'0',testMode:process.env.LH_DESKTOP_TEST??'0'}));
+execFileSync('codesign',['--force','--sign','-',app]);
+console.log(app);

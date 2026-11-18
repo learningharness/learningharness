@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dontdumb",
+  "version": "0.1.0-beta.16",
+  "description": "Learn from the work Codex is doing, in a local companion.",
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "onboardingSkill": "./skills/setup/SKILL.md",
+      "interface": {
+        "displayName": "LearningHarness",
+        "shortDescription": "Learn alongside your coding agent",
+        "longDescription": "A local learning companion. A ready topic introduction and a bounded follow-up; deeper teaching when you choose. Uses your signed-in Codex allowance.",
+        "developerName": "LearningHarness",
+        "category": "Productivity",
+        "defaultPrompt": [
+          "Start LearningHarness alongside this project"
+        ],
+        "brandColor": "#A29CF2"
+      },
+      "hooks": "./hooks/hooks.json"
+    }
+  }
+}

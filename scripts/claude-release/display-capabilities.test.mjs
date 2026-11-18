@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import {transform} from 'esbuild';import vm from 'node:vm';
+const {code}=await transform(await readFile('scripts/desktop-runtime/web/bridge.ts','utf8'),{loader:'ts',format:'cjs'});
+for(const [label,dataset,expected] of [['Claude Learn',{learningHost:'claude',claudeLauncher:'true'},{availableDisplayModes:['fullscreen']}],['Claude invitation',{learningHost:'claude',invitation:'true'},{}],['Codex',{learningHost:'codex',claudeLauncher:'true'},{}]])test(label+' advertises only its intended display capabilities',async()=>{
+ const listeners=[],sent=[];const parent={postMessage(message){sent.push(message);if(message.method==='ui/initialize')queueMicrotask(()=>listeners.forEach(fn=>fn({source:parent,data:{jsonrpc:'2.0',id:message.id,result:{hostContext:{displayMode:'fullscreen'}}}})));}};
+ const context={module:{exports:{}},exports:{},window:{addEventListener:(event,fn)=>listeners.push(fn)},document:{documentElement:{dataset}},parent,setTimeout,clearTimeout};context.exports=context.module.exports;vm.runInNewContext(code,context);await context.module.exports.connect();assert.deepEqual(JSON.parse(JSON.stringify(sent[0].params.appCapabilities)),expected);assert.equal(sent[1].method,'ui/notifications/initialized');assert.equal(sent.length,2);
+});

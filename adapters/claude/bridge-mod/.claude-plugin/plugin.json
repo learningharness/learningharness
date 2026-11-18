@@ -1,0 +1,5 @@
+{
+  "name": "dontdumb-bridge",
+  "version": "0.1.0",
+  "description": "Lets the local LearningHarness companion make learning calls on this Claude Code session's own sign-in."
+}

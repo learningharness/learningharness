@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {validateCanvasArtifact,canvasFrame} from '../src/canvas-artifact.js';
+const valid={format:'canvas',title:'A moving piston',html:'<canvas id="c"></canvas><button>Inject fuel</button><script>document.querySelector("button").onclick=()=>{};</script>'};
+test('canvas experience keeps bespoke controls inside an isolated document',()=>{const safe=validateCanvasArtifact(valid);assert.equal(safe.height,500);const frame=canvasFrame(safe);assert.match(frame,/connect-src 'none'/);assert.match(frame,/worker-src 'none'/);assert.match(frame,/<button>Inject fuel/);assert.match(frame,/<script>/);});
+test('rejects external documents, scripts, navigation and oversized artifacts',()=>{for(const html of ['<iframe src="https://example.com"></iframe>','<canvas></canvas><script src="https://example.com/x.js"></script>','<canvas></canvas><a href="https://example.com">Go</a><script></script>','<canvas></canvas><form></form><script></script>'])assert.throws(()=>validateCanvasArtifact({...valid,html}));assert.throws(()=>validateCanvasArtifact({...valid,html:'a'.repeat(28001)}));});

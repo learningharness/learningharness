@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Installation and setup
+    url: https://learningharness.dev/docs/
+    about: Read the current host setup guide and troubleshooting steps.
+  - name: Sensitive security report
+    url: https://github.com/arvindm1991
+    about: Arrange a private reporting channel. Do not post exploit details or private data publicly.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Start DontDumb"
+  short_description: "Open learning alongside your current Codex work"
+  default_prompt: "Use $dontdumb to open the learning companion alongside this project."

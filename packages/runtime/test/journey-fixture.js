@@ -1,0 +1,2 @@
+// Test-only declarative plan; never included in customer learning content.
+export const journeyFixture=objective=>({destination:'Explain, change and test the selected mechanism',steps:[{objective,purpose:'Understand the current implementation',mode:'lesson'},{objective:`Trace a boundary of ${objective}`.slice(0,160),purpose:'Judge a changed engineering guarantee',mode:'decision'},{objective:`Test a change to ${objective}`.slice(0,160),purpose:'Apply the invariant independently',mode:'practice'}]});
