@@ -1,6 +1,6 @@
 # Status and evidence
 
-This open-source snapshot consolidates development in one repository. It is not a new binary release. The website manifest remains the authority for the current installable beta; imported older binaries may predate the development source in this snapshot.
+The plugin source and releases share one MIT-licensed repository. Successful checked main builds publish beta packages and the canonical install manifest on GitHub Releases; failed builds leave the previous release available. The landing page and Firebase deployment live separately in a private repository. Imported older binaries remain historical artifacts. See [release and update behavior](RELEASES.md).
 
 ## Current product scope
 

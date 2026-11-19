@@ -6,11 +6,11 @@ Use this guide for the host the user requested: Codex desktop or Claude Desktop�
 
 ## Check availability
 
-Fetch `/install.json` from the same HTTPS origin as this guide. Check `schemaVersion` and `status` before downloading or changing anything.
+Fetch `https://github.com/learningharness/learningharness/releases/latest/download/install.json`, following HTTPS redirects. This is the canonical manifest for the latest successfully published main build. Check `schemaVersion` and `status` before downloading or changing anything.
 
 If the status is `unreleased`, tell the user public installers are not available yet and stop. Do not guess a package, listing, release tag or download URL. If the manifest is unavailable or unsupported, report that installation cannot be verified.
 
-For an `available` release, select exactly one entry in `artifacts` whose `host` matches the requested host (`codex` or `claude`). Never substitute the other host. Read its `channel`, `requirements`, `limitations` and `nativeAcceptance` when present. Resolve its relative download URL against this origin; require HTTPS and the published SHA-256. A checksum checks consistency with the published release; it is not a code signature.
+For an `available` release, select exactly one entry in `artifacts` whose `host` matches the requested host (`codex` or `claude`). Never substitute the other host. Read its `channel`, `requirements`, `limitations` and `nativeAcceptance` when present. Use its exact absolute download URL; require HTTPS and the published SHA-256. A checksum checks consistency with the published release; it is not a code signature.
 
 ## Codex requirements
 
@@ -30,7 +30,7 @@ Codex desktop on macOS, Node.js 22.19 or later, and an existing Codex sign-in th
 
 After the installer succeeds, say **“LearningHarness is registered. Save and finish active work, fully quit ChatGPT with ChatGPT → Quit ChatGPT (⌘Q), then reopen it. The plugin may not appear until that restart.”** Opening a new chat or closing the window is insufficient. Do not report “ready to use” based only on installer success. Do not automatically quit the user’s app.
 
-After the user reopens ChatGPT, open **Plugins**, choose the **LearningHarness Desktop** source if needed, and find **LearningHarness**. Confirm it is installed and enabled. Then start a fresh Codex coding chat. Select **Review hooks** above the composer or **Settings → Hooks** to review and trust LearningHarness. In the coding chat, choose **Add New Tab (+) → More tools → Open LearningHarness** (called **Learn beside this chat** in earlier versions). Or ask Codex: **“Open LearningHarness.”** Walk the user through this exact route; do not assume they can discover a side-panel tool. If it is still absent, follow `/docs/troubleshooting/`; report what is missing instead of rerunning installation or wiping settings blindly.
+After the user reopens ChatGPT, open **Plugins**, choose the **LearningHarness Desktop** source if needed, and find **LearningHarness**. Confirm it is installed and enabled. Then start a fresh Codex coding chat. Select **Review hooks** above the composer or **Settings → Hooks** to review and trust LearningHarness. In the coding chat, choose **Add New Tab (+) → More tools → Open LearningHarness** (called **Learn beside this chat** in earlier versions). Or ask Codex: **“Open LearningHarness.”** Walk the user through this exact route; do not assume they can discover a side-panel tool. If it is still absent, follow `https://learningharness.dev/docs/troubleshooting/`; report what is missing instead of rerunning installation or wiping settings blindly.
 
 Learn includes a short product tour: why learning alongside work is useful, learning interests and style, hook review, and usage/data controls. Let the user make those choices. New setups default to usage alerts of 50,000 tokens per chat and 2,000,000 overall; these are alerts, not hard spending caps. PostHog usage metadata sharing defaults on, with an opt-out in settings. Do not submit setup or claim hook trust on the user's behalf.
 
@@ -40,11 +40,17 @@ Reinstalling keeps memory and settings, so a returning user may go directly to L
 
 Confirm Codex recognizes the plugin and Learn opens beside the intended coding chat. Complete learning setup with the user's interests and usage limits. Use the existing Codex connection; no additional model account or API key is required.
 
-Check chat connection and one learning response when the user requests it. Do not submit learner answers or start costly media generation merely to test installation. Check visible invitations during normal work separately from installation. If a check is unavailable, say which one remains; follow `/docs/codex/` and `/docs/troubleshooting/` without wiping memory.
+Check chat connection and one learning response when the user requests it. Do not submit learner answers or start costly media generation merely to test installation. Check visible invitations during normal work separately from installation. If a check is unavailable, say which one remains; follow `https://learningharness.dev/docs/codex/` and `https://learningharness.dev/docs/troubleshooting/` without wiping memory.
 
 ## Data and usage
 
 Selected work context and relevant learner context go through the existing Codex model connection. Learning consumes additional allowance. LearningHarness has no application backend receiving code, prompts or learner answers. Memory is local, with import/export in settings. Anonymous usage metadata is on by default when configured and can be disabled in Learn; it excludes code, prompts and answers.
+
+## Check for updates
+
+When asked to look for an update, fetch the canonical latest manifest above. Read the installed plugin version using the host’s supported plugin listing or its installed plugin manifest. Compare with the matching host entry. If versions match, report that it is current and stop. If the installed beta number is higher, report that it is a newer local candidate and do not downgrade automatically. If a newer version is available, report installed and available versions and the release source commit. Check for updates is read-only; install only when the user asks to update.
+
+Use the exact versioned URL and SHA-256 from that one manifest response for the whole update. Do not re-resolve “latest” between downloading and verifying. If the manifest is unavailable or invalid, report that the update check failed; do not guess or silently fall back to an older release.
 
 ## Update or remove
 
@@ -56,7 +62,7 @@ The final onboarding screen includes a copyable starter task: build a small loca
 
 ## Claude Code — experimental release candidate
 
-Select the `claude` artifact from `/install.json`. Explain that native automatic chat binding and the complete host integration are still under acceptance testing. This is a test candidate, not a stable or Anthropic-marketplace-approved release. Use the exact host version listed in the manifest; matching product versions do not imply equal native-host acceptance.
+Select the `claude` artifact from the canonical manifest above. Explain that native automatic chat binding and the complete host integration are still under acceptance testing. This is a test candidate, not a stable or Anthropic-marketplace-approved release. Use the exact host version listed in the manifest; matching product versions do not imply equal native-host acceptance.
 
 ### Required sign-in disclosure
 
@@ -73,4 +79,4 @@ If needed, the user should run `claude auth login` and finish Claude’s own bro
 5. After restart, ask Claude to open LearningHarness using `open_learn` from `learningharness-claude-candidate`. The startup hook should provide automatic chat binding. Click the orange link if shown. Do not ask the user to copy a session ID or guess a recently active chat. If the connection is unavailable, report that native acceptance is pending and stop rather than claiming success.
 6. Let the user choose interests, read the activity-access explanation and decide when to turn learning On. The acknowledgement is not a hook-connection check. Do not submit setup, learner answers or model tests without consent. Verify panel reopen and one learning response only when requested.
 
-The candidate uses separate local test learner state from the installed Codex package. Preserve it and unrelated settings on updates. Closing Learn is different from turning it Off. The public Claude guide is `/docs/claude-code/`.
+The candidate uses separate local test learner state from the installed Codex package. Preserve it and unrelated settings on updates. Closing Learn is different from turning it Off. The public Claude guide is `https://learningharness.dev/docs/claude-code/`.
