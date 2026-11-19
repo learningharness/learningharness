@@ -2,6 +2,10 @@
 
 Status: research kickoff, November 19, 2026. Branch: `codex/autokg`, based on `d6bbb227d21163391234ada8270fb39f4d9cf790`. No new customer behavior or release.
 
+## Detailed research
+
+The [full research synthesis](AUTOKG_LEARNER_MODEL_RESEARCH.md) covers concept discovery from work, graph identity and time, evidence-based learner state, model choices and an evaluation program. It distinguishes published findings from proposed LH designs.
+
 ## Question
 
 Can a small, evolving graph of encountered work and learning evidence help LearningHarness choose a more useful next lesson, explanation or review than its existing context and memory?
