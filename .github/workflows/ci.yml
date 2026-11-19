@@ -33,4 +33,29 @@ jobs:
       - run: npm run build
       - run: npm run test:desktop
       - run: npm run test:claude:package
-      - run: npm run test:website
+      - run: npm run test:release
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: source
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci
+      - name: Select immutable candidate version
+        run: echo "LH_CANDIDATE_VERSION=1.0.0-beta.$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+      - name: Build and validate both plugin archives and manifest
+        run: node scripts/release/build.mjs
+      - name: Publish complete release and advance latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release/publish.mjs

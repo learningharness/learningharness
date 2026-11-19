@@ -21,7 +21,7 @@ let html=await readFile('scripts/desktop-runtime/dist/index.html','utf8');
 for(const file of await readdir('scripts/desktop-runtime/dist/assets')){const text=await readFile(join('scripts/desktop-runtime/dist/assets',file),'utf8');if(file.endsWith('.js'))html=html.replace(/<script type="module"[^>]*src="[^"]+"[^>]*><\/script>/,()=>'<script type="module">'+text.replace(/<\/script/gi,'<\\/script')+'</script>');if(file.endsWith('.css'))html=html.replace(/<link rel="stylesheet"[^>]*>/,()=>'<style>'+text+'</style>');}
 if(/(?:src|href)="\/assets\//.test(html))throw Error('Unbundled UI asset');await writeFile(join(plugin,'view.html'),html);
 await mkdir(join(plugin,'assets'),{recursive:true});
-const logo=await readFile('website/assets/mark.svg','utf8');
+const logo=await readFile('scripts/distribution/assets/mark.svg','utf8');
 await writeFile(join(plugin,'assets/logo-dark.svg'),logo);
 await writeFile(join(plugin,'assets/logo.svg'),logo.replace('#f2f1ee','#17181c'));
 await json(join(plugin,'.codex-plugin/plugin.json'),{name:'learning-harness',version,description:'Learn from your work alongside Codex, using your existing Codex connection.',mcpServers:'./.mcp.json',interface:{displayName:'LearningHarness',shortDescription:'A tutor beside your Codex work',developerName:'LearningHarness',category:'Productivity',logo:'./assets/logo.svg',logoDark:'./assets/logo-dark.svg',composerIcon:'./assets/logo.svg',composerIconDark:'./assets/logo-dark.svg'}});

@@ -4,7 +4,8 @@ import {readFile,writeFile,mkdir,readdir,cp} from 'node:fs/promises';
 import {resolve,join,basename} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {writeDistributionNotices} from '../distribution-notices.mjs';
-const version='1.0.0-beta.63',root=resolve(process.env.LH_CLAUDE_PACKAGE_DIR??'artifacts/claude-native-candidate');
+const version=process.env.LH_CANDIDATE_VERSION??'1.0.0-beta.63',root=resolve(process.env.LH_CLAUDE_PACKAGE_DIR??'artifacts/claude-native-candidate');
+if(!/^1\.0\.0-beta\.\d+$/.test(version))throw Error('Invalid candidate version');
 await mkdir(root,{recursive:true});await mkdir(join(root,'hooks'),{recursive:true});await mkdir(join(root,'.claude-plugin'),{recursive:true});
 const uiDir=join(root,'ui-build');
 await uiBuild({configFile:'scripts/desktop-runtime/vite.config.mjs',build:{outDir:uiDir},plugins:[{name:'claude-web-frame',enforce:'pre',async load(id){
