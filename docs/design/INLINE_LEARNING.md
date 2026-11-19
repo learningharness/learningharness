@@ -1,6 +1,6 @@
 # Inline learning
 
-Branch: `codex/inline-learning`. This is a development change, not an installable release.
+Introduced on `codex/inline-learning`. Distribution uses the checked-main early-access release pipeline; see ../RELEASES.md.
 
 ## Experience
 
@@ -28,7 +28,7 @@ Automated checks cover default/persisted placement in both hosts, invalid settin
 
 For browser checks, run `npm run build` then `node scripts/desktop-runtime/inline-test-harness.mjs`. Open `http://127.0.0.1:8474/`; add `?claude`, `?sidebar`, or `?onboarding`. This isolated fixture uses no model calls, hooks or learner files. Check keyboard checkbox selection, 320px panels, an immediate answer-to-sidebar transition, feedback synchronization and the session stack. It intentionally simulates the host protocol, not model quality.
 
-Before release: observe both real native hosts through onboarding, prediction, a complete quiz, expansion, app restart, a second invitation and Off. Check denied expansion and multiple open views. This branch has no new live learning evaluation and is not a completed learning-behavior milestone. Existing failed evaluation evidence in [Status](../STATUS.md) remains applicable.
+Remaining native acceptance: observe both real hosts through onboarding, prediction, a complete quiz, expansion, app restart, a second invitation and Off. Check denied expansion and multiple open views. This branch has no new live learning evaluation and is not a completed learning-behavior milestone. Existing failed evaluation evidence in [Status](../STATUS.md) remains applicable.
 
 Local verification on November 19, 2026: 500 core tests, 90 desktop/package tests, 3 Claude package tests and 3 display-capability tests passed; type checking and UI builds passed. An initial restricted run had seven local-socket permission failures; the permitted rerun passed. Browser checks covered both synthetic host identities, default placement, choosing Sidebar during setup, native-radio ArrowRight navigation, 320px width, in-place prediction, immediate draft flush before expansion, expanding a newly requested quiz instead of its original invitation, shared feedback, session history, stale cards and denied expansion without answer loss. No console warnings/errors were observed in those browser checks. Real host acceptance and live learning evaluation remain pending.
 
@@ -37,3 +37,5 @@ Native local check follow-up: built distinct beta64 and beta65 candidates withou
 The actual Claude session also exposed a stale invitation after a prose UI-control turn. Added a local-only recovery for the exact current, already prepared moment. It refuses a different moment, an unprepared target, a completed moment, goals, paused sessions and Off. Publishing checks this local target before reading the refreshed chain; it does not invoke generation. A regression test covers those boundaries. Beta66 packages are the local native test candidates. Desktop/package checks now pass92/92, Claude package3/3 and type checking passes; the real cache task passes5/5. Full native interaction remains under test.
 
 November 19 correction: replaced mutually exclusive placement controls and the full inline companion with the opt-in checkbox and dedicated bounded quick-question card. All 501 core and 92 desktop tests pass. Type checking and the UI build pass. Synthetic browser checks observed the checkbox, compact prediction, answer/confidence preservation in a separately mounted sidebar and automatic sidebar routing for a visual lesson. These checks do not establish native host acceptance or learning outcomes.
+
+Release scope: the maintainer requested publication through the checked-main beta pipeline. Automated and isolated browser coverage supports early-access distribution, not a claim of full native acceptance or a completed learning-behavior milestone. The corrected compact card has not completed a full native Codex walkthrough.
