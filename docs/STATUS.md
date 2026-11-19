@@ -18,4 +18,4 @@ Private reports, raw prompts, learner records, internal journals and outreach ma
 
 ## Inline presentation branch
 
-`codex/inline-learning` adds a default Inline/optional Sidebar choice, setup previews, shared inline learning controls, answer-preserving expansion and a session-content stack. Browser checks use a synthetic MCP Apps host. Real Codex/Claude acceptance and a new live learning evaluation have not been completed for this branch. It has not been promoted or deployed. See [the design and acceptance notes](design/INLINE_LEARNING.md).
+`codex/inline-learning` adds an enabled-by-default “Allow quick questions inline” checkbox, setup previews, a bounded quiz/prediction card, answer-preserving expansion and a session-content stack. Browser checks use a synthetic MCP Apps host. Real Codex/Claude acceptance and a new live learning evaluation have not been completed for this branch. It has not been promoted or deployed. See [the design and acceptance notes](design/INLINE_LEARNING.md).

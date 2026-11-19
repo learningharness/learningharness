@@ -1,4 +1,4 @@
-import {PresentationChoice} from '../../../packages/ui/src/PresentationChoice.js';
+import {InlinePreference} from '../../../packages/ui/src/InlinePreference.js';
 import {DEFAULT_USAGE_LIMITS} from '../../../packages/runtime/src/default-limits.js';
 import {createSignal,onMount,onCleanup,For,Show,Switch,Match} from 'solid-js';
 import {LearningLogo as LearningMark} from '../../../packages/ui/src/LearningLogo.js';
@@ -7,8 +7,8 @@ const starterPrompt = `Build a small Node.js cache demo in a new, unused folder 
 Use plain JavaScript and Node's built-in test runner, with no dependencies or external services. Simulate a slow data source locally. Cache its results for a short time, share one pending request when callers ask for the same key together, and make sure a failed request can be tried again.
 
 Add tests for cache hits, expiry, concurrent requests and failures. Use a controllable clock so tests don't need to wait. Run the tests and show me how to run the demo. Start with a short plan, then implement it.`;
-export function Setup(props:{host:string;finish:(profile:any,limits:any,presentation:'inline'|'sidebar')=>Promise<void>;settings:()=>void;profile?:any;limits?:any;presentation?:'inline'|'sidebar'}){
- const [placement,setPlacement]=createSignal<'inline'|'sidebar'>(props.presentation??'inline');
+export function Setup(props:{host:string;finish:(profile:any,limits:any,allowInline:boolean)=>Promise<void>;settings:()=>void;profile?:any;limits?:any;allowInline?:boolean}){
+ const [placement,setPlacement]=createSignal(props.allowInline??true);
  const [intro,setIntro]=createSignal(true);
  let introTimer:ReturnType<typeof setTimeout>|undefined;
  const finishIntro=()=>{clearTimeout(introTimer);setIntro(false);requestAnimationFrame(()=>heading?.focus());};
@@ -46,7 +46,7 @@ export function Setup(props:{host:string;finish:(profile:any,limits:any,presenta
     </Match>
     <Match when={step()===2}>
      <span class="lh-eyebrow">YOUR SPACE TO LEARN</span><h1 ref={heading} tabIndex={-1}>Keep it<br/><em>close to the work.</em></h1>
-     <PresentationChoice value={placement()} onChange={setPlacement}/>
+     <InlinePreference value={placement()} onChange={setPlacement}/>
     </Match>
     <Match when={step()===3}>
      <span class="lh-eyebrow">{claude()?'HOW LEARNING CONNECTS':'ONE PERMISSION TO REVIEW'}</span><h1 ref={heading} tabIndex={-1}>Learning follows<br/><em>the work.</em></h1>

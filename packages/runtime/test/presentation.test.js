@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {LearningEngine} from '../src/learning-engine.js';
-for(const host of ['codex','claude'])test(`${host}: presentation defaults inline and persists independently of learning`,async()=>{
+for(const host of ['codex','claude'])test(`${host}: inline questions default on, migrate and persist independently of learning`,async()=>{
  let stored=null;let calls=0;
  const make=()=>new LearningEngine({storage:{get:async()=>stored,set:async(_,value)=>{stored=structuredClone(value);}},gateway:{generate:async()=>{calls++;throw Error('Unexpected inference');}},capabilities:{host,observation:{kinds:[]},model:{independent:true},surface:{}}});
- let e=make();await e.load();assert.equal(e.snapshot().settings.presentation,'inline');
- for(const value of ['sidebar','inline']){await e.command({action:'set-presentation',value});e=make();await e.load();assert.equal(e.snapshot().settings.presentation,value);assert.equal(e.snapshot().enabled,false);assert.deepEqual(e.state.sessions,{});}
- for(const value of [null,'fullscreen',true,{}])await assert.rejects(e.command({action:'set-presentation',value}),/Inline or Sidebar/);
+ let e=make();await e.load();assert.equal(e.snapshot().settings.allowInline,true);
+ for(const value of [false,true]){await e.command({action:'set-inline-questions',value});e=make();await e.load();assert.equal(e.snapshot().settings.allowInline,value);assert.equal(e.snapshot().enabled,false);assert.deepEqual(e.state.sessions,{});}
+ for(const value of [null,'inline',1,{}])await assert.rejects(e.command({action:'set-inline-questions',value}),/on or off/);
+ for(const presentation of ['sidebar','inline']){stored={version:1,sessions:{},settings:{presentation}};e=make();await e.load();assert.equal(e.snapshot().settings.allowInline,presentation==='inline');}
  assert.equal(calls,0);
 });
 test('switching prepared cards preserves the first answer and feedback without inference',async()=>{

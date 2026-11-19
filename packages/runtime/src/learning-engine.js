@@ -50,7 +50,7 @@ const VISUAL_TYPES = ['steps', 'timeline', 'compare', 'state', 'flow'];
 function initialState() {
   return { version: 1, enabled: false, globallyStopped: false, fault: null, limits: null,
     sessions: {}, history: [], usage: { input: 0, output: 0, calls: 0 },
-    memory: { topics: {}, sequence: [] }, workGraph:emptyWorkGraph(), ledger: {}, lastLearningTokens: {}, journal: [], settings: { learningModel: null, contentBuilderModel: null, sensitivity: 'learn-balanced', presentation: 'inline', analyticsEnabled: true } };
+    memory: { topics: {}, sequence: [] }, workGraph:emptyWorkGraph(), ledger: {}, lastLearningTokens: {}, journal: [], settings: { learningModel: null, contentBuilderModel: null, sensitivity: 'learn-balanced', allowInline: true, analyticsEnabled: true } };
 }
 function stripFence(text) { const match = String(text).trim().match(/^```(?:html|json)?\s*([\s\S]*?)\s*```$/i); return match ? match[1] : String(text).trim(); }
 // Defense in depth: the observer already redacts, but the engine
@@ -372,7 +372,7 @@ export class LearningEngine {
     for(const session of Object.values(stored?.sessions??{}))if(session.pendingUsage||session.requestStatus?.status==='pending'||['running','prepared'].includes(session.agentRun?.status))interrupted.add(session.id);
     if (stored && stored.version === 1) {
       const storedSensitivity = normalizeSensitivity(stored.settings?.sensitivity) ?? 'learn-balanced';
-      this.state = { ...initialState(), ...stored, sessions: stored.sessions ?? {}, memory: stored.memory ?? { topics: {}, sequence: [] }, lastLearningTokens: stored.lastLearningTokens ?? {}, journal: stored.journal ?? [], settings: { learningModel: null, contentBuilderModel: null, ...(stored.settings ?? {}), sensitivity: storedSensitivity, presentation: stored.settings?.presentation === 'sidebar' ? 'sidebar' : 'inline', analyticsEnabled: typeof stored.settings?.analyticsEnabled === 'boolean' ? stored.settings.analyticsEnabled : true } };
+      this.state = { ...initialState(), ...stored, sessions: stored.sessions ?? {}, memory: stored.memory ?? { topics: {}, sequence: [] }, lastLearningTokens: stored.lastLearningTokens ?? {}, journal: stored.journal ?? [], settings: { learningModel: null, contentBuilderModel: null, ...(stored.settings ?? {}), sensitivity: storedSensitivity, allowInline: typeof stored.settings?.allowInline==='boolean'?stored.settings.allowInline:stored.settings?.presentation!=='sidebar', analyticsEnabled: typeof stored.settings?.analyticsEnabled === 'boolean' ? stored.settings.analyticsEnabled : true } };
       if(this.state.limits?.session===50_000&&this.state.limits?.total===2_000_000)this.state.limits={...DEFAULT_USAGE_LIMITS};
       this.state.ledger ??= {};
       // Counter-only recovery retains unknown usage instead of inventing zero.
@@ -1187,7 +1187,7 @@ export class LearningEngine {
     catch (error) { this.track('command_failed', input?.sessionID, { action: input?.action }); throw error; }
   }
   async dispatchCommand(input) {
-    if (['enable','disable','stop','set-limits','set-session-launcher','set-presentation','set-presentation-cursor','set-sensitivity','set-content-builder-model','set-learning-model','set-context-model','save-learner-profile','refresh-learner','export-learner','import-learner','set-analytics','surface-opened','dismiss-usage-alert','session-context','set-session-focus','pause','resume','save-draft'].includes(input.action)) return this.executeCommand(input);
+    if (['enable','disable','stop','set-limits','set-session-launcher','set-presentation','set-inline-questions','set-presentation-cursor','set-sensitivity','set-content-builder-model','set-learning-model','set-context-model','save-learner-profile','refresh-learner','export-learner','import-learner','set-analytics','surface-opened','dismiss-usage-alert','session-context','set-session-focus','pause','resume','save-draft'].includes(input.action)) return this.executeCommand(input);
     return this.enqueueSession(input.sessionID, () => this.executeCommand(input));
   }
   async enqueueSession(sessionID, work) {
@@ -1241,9 +1241,14 @@ export class LearningEngine {
       session.presentationCursor={invitationId:value.invitationId,momentId:value.momentId};
       await this.persist();return this.snapshot(sessionID);
     }
+    if(action==='set-inline-questions'){
+      if(typeof value!=='boolean')throw Error('Inline questions must be on or off');
+      this.state.settings.allowInline=value;
+      await this.update('inline-question-settings',sessionID);return this.snapshot(sessionID);
+    }
     if (action === 'set-presentation') {
       if (!['inline','sidebar'].includes(value)) throw Error('Choose Inline or Sidebar');
-      this.state.settings.presentation=value;
+      this.state.settings.presentation=value;this.state.settings.allowInline=value==='inline';
       await this.update('presentation-settings',sessionID);return this.snapshot(sessionID);
     }
     if (action === 'set-session-launcher') {
