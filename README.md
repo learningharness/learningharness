@@ -14,7 +14,7 @@ Paste this into your coding agent:
 
 > Install LearningHarness using the instructions at https://learningharness.dev/install.md
 
-The install guide checks the [release manifest](https://learningharness.dev/install.json) for the right package and checksum. Current installers are hosted on learningharness.dev under `/downloads/`. GitHub source archives are for development, not plugin installation.
+The install guide checks the [release manifest](https://github.com/learningharness/learningharness/releases/latest/download/install.json) for the right package and checksum. Every successful main build publishes versioned plugin ZIPs and the [latest installation manifest](https://github.com/learningharness/learningharness/releases/latest/download/install.json) on GitHub Releases. The install guide uses that manifest for installation and update checks. GitHub’s automatically generated source archives are for development, not plugin installation.
 
 | Host | Status | Setup |
 | --- | --- | --- |
@@ -55,8 +55,10 @@ adapters/claude/          Claude host integration
 scripts/desktop-runtime/  Local desktop service, hooks and embedded app
 scripts/codex-release/    Codex installer and package integration
 scripts/claude-release/   Claude installer and package integration
-website/                  Website and customer documentation
+scripts/release/          Main-build packaging, install manifest and publication
 ```
+
+The landing page and Firebase deployment are maintained separately in a private website repository. They are not part of this plugin’s contribution scope or release pipeline.
 
 ## Status
 

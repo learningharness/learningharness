@@ -12,10 +12,10 @@
     "typecheck": "tsc -p packages/ui/tsconfig.json --noEmit",
     "build": "vite build --config scripts/desktop-runtime/vite.config.mjs",
     "test:desktop": "node --test scripts/desktop-runtime/*.test.mjs scripts/codex-release/*.test.mjs scripts/claude-release/early-context.test.mjs scripts/claude-release/launcher-control.test.mjs",
-    "test:website": "node website/build.mjs && node website/prepare-public-site.mjs && node --test website/test/*.test.mjs",
     "pretest": "tsc -p packages/http-retry/tsconfig.json",
     "test:claude:package": "node scripts/claude-release/package.mjs && node --test scripts/claude-release/package.test.mjs",
-    "pretest:desktop": "LEARNING_HARNESS_POSTHOG_TOKEN=phc_synthetic_package_test node scripts/package-native-codex.mjs"
+    "pretest:desktop": "LEARNING_HARNESS_POSTHOG_TOKEN=phc_synthetic_package_test node scripts/package-native-codex.mjs",
+    "test:release": "node --test scripts/release/*.test.mjs"
   },
   "devDependencies": {
     "@earendil-works/pi-agent-core": "1.5.0",

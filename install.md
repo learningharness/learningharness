@@ -6,11 +6,11 @@ Use this guide for the host the user requested: Codex desktop or Claude Desktop�
 
 ## Check availability
 
-Fetch `/install.json` from the same HTTPS origin as this guide. Check `schemaVersion` and `status` before downloading or changing anything.
+Fetch `https://github.com/learningharness/learningharness/releases/latest/download/install.json`, following HTTPS redirects. This is the canonical manifest for the latest successfully published main build. Check `schemaVersion` and `status` before downloading or changing anything.
 
 If the status is `unreleased`, tell the user public installers are not available yet and stop. Do not guess a package, listing, release tag or download URL. If the manifest is unavailable or unsupported, report that installation cannot be verified.
 
-For an `available` release, select exactly one entry in `artifacts` whose `host` matches the requested host (`codex` or `claude`). Never substitute the other host. Read its `channel`, `requirements`, `limitations` and `nativeAcceptance` when present. Resolve its relative download URL against this origin; require HTTPS and the published SHA-256. A checksum checks consistency with the published release; it is not a code signature.
+For an `available` release, select exactly one entry in `artifacts` whose `host` matches the requested host (`codex` or `claude`). Never substitute the other host. Read its `channel`, `requirements`, `limitations` and `nativeAcceptance` when present. Use its exact absolute download URL; require HTTPS and the published SHA-256. A checksum checks consistency with the published release; it is not a code signature.
 
 ## Codex requirements
 
@@ -46,6 +46,12 @@ Check chat connection and one learning response when the user requests it. Do no
 
 Selected work context and relevant learner context go through the existing Codex model connection. Learning consumes additional allowance. LearningHarness has no application backend receiving code, prompts or learner answers. Memory is local, with import/export in settings. Anonymous usage metadata is on by default when configured and can be disabled in Learn; it excludes code, prompts and answers.
 
+## Check for updates
+
+When asked to look for an update, fetch the canonical latest manifest above. Read the installed plugin version using the host’s supported plugin listing or its installed plugin manifest. Compare with the matching host entry. If versions match, report that it is current and stop. If the installed beta number is higher, report that it is a newer local candidate and do not downgrade automatically. If a newer version is available, report installed and available versions and the release source commit. Check for updates is read-only; install only when the user asks to update.
+
+Use the exact versioned URL and SHA-256 from that one manifest response for the whole update. Do not re-resolve “latest” between downloading and verifying. If the manifest is unavailable or invalid, report that the update check failed; do not guess or silently fall back to an older release.
+
 ## Update or remove
 
 For an update from an older beta, first turn learning **Off** and finish active work. After installing, fully quit ChatGPT with **⌘Q**, wait **90 seconds**, then reopen it. The old local learning service needs time to exit; reopening immediately can reconnect to it. Keep learner memory and settings intact.
@@ -56,7 +62,7 @@ The final onboarding screen includes a copyable starter task: build a small loca
 
 ## Claude Code — experimental release candidate
 
-Select the `claude` artifact from `/install.json`. Explain that native automatic chat binding and the complete host integration are still under acceptance testing. This is a test candidate, not a stable or Anthropic-marketplace-approved release. Use the exact host version listed in the manifest; matching product versions do not imply equal native-host acceptance.
+Select the `claude` artifact from the canonical manifest above. Explain that native automatic chat binding and the complete host integration are still under acceptance testing. This is a test candidate, not a stable or Anthropic-marketplace-approved release. Use the exact host version listed in the manifest; matching product versions do not imply equal native-host acceptance.
 
 ### Required sign-in disclosure
 

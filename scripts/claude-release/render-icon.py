@@ -1,7 +1,7 @@
 """Rasterize the existing LearningHarness mark for directory listing metadata."""
 from pathlib import Path
 from PIL import Image, ImageDraw
-source = Path('website/dist/assets/mark.svg').read_text()
+source = Path('scripts/distribution/assets/mark.svg').read_text()
 assert 'M0 0h20v80h20V60h20v40H0Z' in source
 assert 'M40 0h60v100H80V20H60v20H40Z' in source
 size, oversample = 1024, 4
