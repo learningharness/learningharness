@@ -1237,7 +1237,7 @@ export class LearningEngine {
     }
     if(action==='set-presentation-cursor'){
       const session=sessionID&&this.session(sessionID);
-      if(typeof value?.invitationId!=='string'||!session?.preparedLessons||!Object.hasOwn(session.preparedLessons,value.invitationId)||session.moment?.id!==value?.momentId)throw Error('This learning step changed before it could expand');
+      if(typeof value?.invitationId!=='string'||typeof value?.momentId!=='string'||!session?.preparedLessons||!Object.hasOwn(session.preparedLessons,value.invitationId)||session.moment?.id!==value?.momentId)throw Error('This learning step changed before it could expand');
       session.presentationCursor={invitationId:value.invitationId,momentId:value.momentId};
       await this.persist();return this.snapshot(sessionID);
     }

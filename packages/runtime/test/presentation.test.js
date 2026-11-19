@@ -24,5 +24,5 @@ test('a presentation cursor belongs to an existing invitation and the exact curr
  const e=new LearningEngine({storage:{get:async()=>null,set:async()=>{}},gateway:{generate:async()=>{throw Error('Unexpected inference');}},capabilities:{host:'codex',observation:{kinds:[]},model:{},surface:{}}});await e.load();const s=e.session('chat');s.moment={id:'current'};s.preparedLessons={card:{moment:{id:'original'}}};
  await e.command({action:'set-presentation-cursor',sessionID:'chat',value:{invitationId:'card',momentId:'current'}});
  assert.deepEqual(s.presentationCursor,{invitationId:'card',momentId:'current'});
- for(const value of [{invitationId:'unknown',momentId:'current'},{invitationId:'__proto__',momentId:'current'},{invitationId:'constructor',momentId:'current'},{invitationId:'card',momentId:'old'}])await assert.rejects(e.command({action:'set-presentation-cursor',sessionID:'chat',value}),/changed/);
+ for(const value of [{invitationId:'unknown',momentId:'current'},{invitationId:'__proto__',momentId:'current'},{invitationId:'constructor',momentId:'current'},{invitationId:'card',momentId:'old'},{invitationId:'card'}])await assert.rejects(e.command({action:'set-presentation-cursor',sessionID:'chat',value}),/changed/);
 });
