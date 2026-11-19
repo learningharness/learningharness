@@ -23,9 +23,10 @@ function mock({fail=false,existing=false,stale=false}={}){
  const gh=args=>{
   calls.push(args);
   if(args[0]==='api'&&args[1].endsWith('branches/main'))return stale?'b'.repeat(40):commit;
-  if(args[0]==='api'){
-   if(!created){const error=Error('missing');error.stderr='HTTP 404';throw error;}
-   return JSON.stringify({draft:true,target_commitish:commit,assets:existing?[{name:`learning-harness-codex-${version}.zip`}]:[]});
+  if(args[0]==='api'){const error=Error('published releases only');error.stderr='HTTP 404';throw error;}
+  if(args[0]==='release'&&args[1]==='view'){
+   if(!created){const error=Error('missing');error.stderr='release not found';throw error;}
+   return JSON.stringify({isDraft:true,targetCommitish:commit,assets:existing?[{name:`learning-harness-codex-${version}.zip`}]:[]});
   }
   if(args[1]==='create')created=true;
   if(args[1]==='upload'&&fail)throw Error('upload failed');

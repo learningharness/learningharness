@@ -17,12 +17,12 @@ export async function publishRelease({directory,gh}){
  const requireCurrentMain=()=>{if(gh(['api',`repos/${repository}/branches/main`,'--jq','.commit.sha']).trim()!==commit)throw Error('A newer main commit exists; refusing to move latest backward');};
  requireCurrentMain();
  let release;
- try{release=JSON.parse(gh(['api',`repos/${repository}/releases/tags/${tag}`]));}
- catch(error){if(!String(error.stderr).includes('HTTP 404'))throw error;}
- if(release&&release.target_commitish!==commit)throw Error('Release tag belongs to different source');
+ try{release=JSON.parse(gh(['release','view',tag,'--repo',repository,'--json','isDraft,targetCommitish,assets']));}
+ catch(error){if(!/release not found|HTTP 404/.test(String(error.stderr)))throw error;}
+ if(release&&release.targetCommitish!==commit)throw Error('Release tag belongs to different source');
  if(!release){
   gh(['release','create',tag,'--repo',repository,'--draft','--target',commit,'--title',`LearningHarness ${version}`,'--notes-file',join(directory,'RELEASE_NOTES.md')]);
-  release=JSON.parse(gh(['api',`repos/${repository}/releases/tags/${tag}`]));
+  release=JSON.parse(gh(['release','view',tag,'--repo',repository,'--json','isDraft,targetCommitish,assets']));
  }
  const files=[...artifacts.map(a=>a.file),'install.json','install.md','SHA256SUMS.txt'];
  const temporary=await mkdtemp(join(tmpdir(),'lh-release-verify-'));
@@ -32,7 +32,7 @@ export async function publishRelease({directory,gh}){
     gh(['release','download',tag,'--repo',repository,'--pattern',name,'--dir',temporary]);
     if(!(await readFile(join(temporary,name))).equals(await readFile(join(directory,name))))throw Error('Published asset differs; use a new version: '+name);
    }else{
-    if(!release.draft)throw Error('Published release is incomplete; refusing to modify it');
+    if(!release.isDraft)throw Error('Published release is incomplete; refusing to modify it');
     gh(['release','upload',tag,join(directory,name),'--repo',repository]);
    }
   }
