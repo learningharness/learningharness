@@ -120,6 +120,7 @@ async function handle(method, p) {
     return {job:key};
   }
   if(method==='setup'){
+    if(p.presentation!==undefined)await engine.command({action:'set-presentation',value:p.presentation});
     await engine.command({action:'save-learner-profile',value:p.profile});
     await engine.command({action:'set-limits',value:p.limits});
     await engine.command({action:'enable'});

@@ -63,3 +63,4 @@ html[data-inline-invitation],html[data-inline-invitation] body,html[data-inline-
 .lh-tour-footer .lh-tour-next-button:disabled{opacity:.4;cursor:default}
 
 .lh-claude-launcher{width:100%;padding:6px 4px;min-height:0}.lh-claude-launcher button{display:inline-flex;align-items:center;flex-wrap:nowrap;width:max-content;max-width:100%;min-height:20px;gap:8px}.lh-claude-launcher button>span{white-space:nowrap}.lh-claude-launcher .lh-invitation-mark{display:block;width:16px;height:16px;flex:0 0 16px;margin:0}
+html[data-inline-invitation] .dd-root{height:auto;min-height:0}html[data-inline-invitation] .dd-panel{height:auto;max-height:620px;min-height:0}html[data-inline-invitation] .dd-feed{min-height:0;overflow:auto}html[data-inline-invitation] .dd-header{flex-wrap:wrap}html[data-inline-invitation] .dd-header-actions{flex-wrap:wrap}
