@@ -25,7 +25,7 @@ export function Setup(props:{host:string;finish:(profile:any,limits:any,presenta
  return <Show when={!intro()} fallback={<main class="lh-brand-intro" aria-label="Welcome to LearningHarness"><div><LearningMark/><h1>LearningHarness</h1><p>Your agent writes.<br/>You stay sharp.</p></div><button class="dd-link lh-intro-next" onClick={finishIntro}>Next <span aria-hidden="true">→</span></button></main>}><main class="lh-setup lh-tour lh-tour-compact">
   <header class="lh-setup-header"><span class="lh-wordmark"><LearningMark/>LearningHarness</span><button class="dd-icon" onClick={props.settings} aria-label="Open settings">⋯</button></header>
   <div class="lh-tour-progress" aria-label={`Setup step ${step()+1} of 5`}><For each={[0,1,2,3,4]}>{n=><span classList={{complete:n<=step()}}/>}</For><small>{step()+1} / 5</small></div>
-  <div class="lh-tour-body" ref={pane}>
+  <div class="lh-tour-body" classList={{'lh-placement-step':step()===2}} ref={pane}>
    <Switch>
     <Match when={step()===0}>
      <span class="lh-eyebrow">BUILD WITH {props.host.toUpperCase()}</span><h1 ref={heading} tabIndex={-1}>Understand what<br/><em>your agent writes.</em></h1>
