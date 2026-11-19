@@ -1,8 +1,8 @@
 # Install LearningHarness for Codex or Claude Code
 
-Public early access for macOS. The local-plugin invitation keeps Codex’s gray activity header; the lesson opens beside the coding chat.
+Public early access. The local-plugin invitation keeps Codex’s gray activity header; the lesson opens beside the coding chat.
 
-Use this guide for the host the user requested: Codex desktop or Claude Desktop’s Code tab on macOS. Codex is public early access; Claude is an experimental release candidate. If the intended host is unclear, ask before installing. The Claude instructions are below the Codex section.
+Use this guide for the host the user requested: Codex desktop or Claude Desktop’s Code tab. Codex is public early access; Claude is an experimental release candidate. If the intended host is unclear, ask before installing. The Claude instructions are below the Codex section.
 
 ## Check availability
 
