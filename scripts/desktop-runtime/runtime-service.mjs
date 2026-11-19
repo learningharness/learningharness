@@ -1,3 +1,4 @@
+import {isNativeCommand} from './command-policy.mjs';
 import {requireWorkContext} from './work-context.mjs';
 import {createDesktopControls} from '../desktop-controls/service.mjs';
 import {replyToSocket} from './socket-reply.mjs';
@@ -82,7 +83,7 @@ function observer(id) {
   }
   return observers.get(id);
 }
-const allowed = new Set(["new-moment", "surface-opened", "enable", "disable", "stop", "pause", "resume", "set-limits", "set-session-launcher", "set-reengagement", "ack-review-reminder", "set-sensitivity", "set-content-builder-model", "set-learning-model", "set-context-model", "save-learner-profile", "refresh-learner", "export-learner", "import-learner", "set-analytics", "save-draft", "set-session-focus", "suggest", "select-goal", "reveal-card", "reveal-explanation", "create-flashcard-deck", "resume-flashcard-deck", "revisit-lesson", "journey-step", "review-topic", "create-confidence-quiz", "deck-reveal", "deck-rate", "deck-navigate", "submit", "hint", "ask", "request", "next-move", "refresh", "back-to-goals", "open-upcoming-goals", "dismiss-opportunity", "dismiss-usage-alert", "dismiss", "start-review", "skip-review", "recap"]);
+
 let desktopControls;
 async function handle(method, p) {
   lastLease = Date.now();
@@ -134,7 +135,7 @@ async function handle(method, p) {
   }
   if (method === "command") {
     const input = p.input;
-    if (!allowed.has(input.action)) throw Error("Unsupported learning action");
+    if (!isNativeCommand(input.action)) throw Error("Unsupported learning action");
     if (input.sessionID && input.sessionID !== id) throw Error("Chat identity mismatch");
     if(input.action==='suggest')requireWorkContext(engine.snapshot(id).session);
     if (["enable", "disable", "stop"].includes(input.action)) mode.set(input.action === "enable");
