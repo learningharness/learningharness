@@ -26,6 +26,8 @@ Explore reusing existing opportunity and teaching calls for bounded graph update
 
 The test is whether this improves the next learning decision. A larger graph is not the goal by itself.
 
+The AutoKG research branch starts with a [source review and comparison experiment](docs/research/AUTOKG.md). It does not change the current release or establish a learning benefit.
+
 ## Community, when there is a need
 
 Start with useful issues and focused PRs. Add Discussions or a forum for work-in-progress ideas, learning experience design and feedback as participation grows. Establish a contribution gallery and clearer extension contracts when real examples justify them. We do not need a large community structure before people have something useful to contribute.
