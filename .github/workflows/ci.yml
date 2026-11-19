@@ -10,7 +10,11 @@ concurrency:
   cancel-in-progress: true
 jobs:
   source:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15-intel]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -20,6 +24,9 @@ jobs:
         with:
           node-version: '22.19.0'
           cache: npm
+      - name: Install shell used by hook launchers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes zsh
       - run: npm ci
       - run: npm run typecheck
       - run: npm test

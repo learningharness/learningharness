@@ -18,8 +18,8 @@ The install guide checks the [release manifest](https://learningharness.dev/inst
 
 | Host | Status | Setup |
 | --- | --- | --- |
-| Codex desktop on macOS | Early access | [Codex guide](https://learningharness.dev/docs/codex/) |
-| Claude Desktop's Code tab on macOS | Experimental | [Claude guide](https://learningharness.dev/docs/claude-code/) |
+| Codex desktop | Early access | [Codex guide](https://learningharness.dev/docs/codex/) |
+| Claude Desktop's Code tab | Experimental | [Claude guide](https://learningharness.dev/docs/claude-code/) |
 
 Codex setup requires a full app restart and your review of local hooks. Registration alone is not completed setup. Claude also requires the Claude Code CLI signed in with an active subscription. Follow the host guide through the first working session.
 
