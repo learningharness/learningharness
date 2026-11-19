@@ -1,3 +1,4 @@
+import {restorePreparedMoment} from './prepared-target.mjs';
 import {isNativeCommand} from './command-policy.mjs';
 import {requireWorkContext} from './work-context.mjs';
 import {createDesktopControls} from '../desktop-controls/service.mjs';
@@ -111,7 +112,7 @@ async function handle(method, p) {
   if(method==='delivery-receipt'){try{return await recordDeliveryReceipt(deliveryLedger,p);}catch(error){engine.record('native_delivery_failed',id,{status:'unavailable'});throw error;}}
   if(method==='invitation-target'){
     if(!validSessionId(id))throw Error('Exact chat identity required');
-    const chain=readChain(id);if(chain?.status==='ready'&&chain.preparedTarget&&engine.session(id).preparedLessons?.[chain.preparedTarget.id]){await deliveryLedger?.record(id,chain.runtimeKey,'prepared',{invitationId:chain.preparedTarget.id}).catch(()=>engine.record('native_delivery_failed',id,{status:'unavailable'}));return chain.preparedTarget;}
+    let chain=readChain(id);const restored=restorePreparedMoment(chain,engine.session(id),engine.state);if(restored){writeChain(id,restored);chain=restored;}if(chain?.status==='ready'&&chain.preparedTarget&&engine.session(id).preparedLessons?.[chain.preparedTarget.id]){await deliveryLedger?.record(id,chain.runtimeKey,'prepared',{invitationId:chain.preparedTarget.id}).catch(()=>engine.record('native_delivery_failed',id,{status:'unavailable'}));return chain.preparedTarget;}
     throw Error('No prepared content is available');
   }
   if(method==='open-invitation'){

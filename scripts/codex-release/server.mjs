@@ -60,8 +60,9 @@ export async function respond(method,p={}){
   if(p.name==='read_prepared_invitation'){if(!process.env.DONTDUMB_NATIVE_TEST_NO_SERVICE)void runtimeCall('delivery-receipt',{id,invitationId:saved.id,stage:'acknowledged'}).catch(()=>{});const state=presentationState(chainDirectory,id,saved.id);if(p.arguments?.displayMode==='inline')presentationState(chainDirectory,id,saved.id,{seenInline:true});return {content:[],structuredContent:{invitationId:saved.id,title:saved.title,resumeLesson:p.arguments?.displayMode==='fullscreen'&&(!!state.started||!!state.seenInline)}};}
   const job=await runtimeCall('open-invitation',{id,target:saved});presentationState(chainDirectory,id,saved.id,{started:true});return {content:[],structuredContent:job};
  }
+ const target=p.name==='show_ready_invitation'?await runtimeCall('invitation-target',{id}):null;
  const chain=readChain(id);if(chain?.status!=='ready')throw Error('No prepared opportunity is ready for this chat');
- if(p.name==='show_ready_invitation'){if(chain.cardAt)return {content:[],structuredContent:{suppressed:true}};const saved=publishPrepared(chainDirectory,id,await runtimeCall('invitation-target',{id}));await runtimeCall('delivery-receipt',{id,invitationId:saved.id,stage:'attempted'});writeChain(id,{...chain,cardAt:Date.now()});return {content:[{type:'text',text:'A learning opportunity is ready.'}],structuredContent:{ready:true,invitationId:saved.id}};}
+ if(p.name==='show_ready_invitation'){if(chain.cardAt)return {content:[],structuredContent:{suppressed:true}};const saved=publishPrepared(chainDirectory,id,target);await runtimeCall('delivery-receipt',{id,invitationId:saved.id,stage:'attempted'});writeChain(id,{...chain,cardAt:Date.now()});return {content:[{type:'text',text:'A learning opportunity is ready.'}],structuredContent:{ready:true,invitationId:saved.id}};}
  if(p.name==='record_chain_opened'){writeChain(id,{...chain,openedAt:Date.now()});return {content:[],structuredContent:{opened:true}};}
  return {content:[],structuredContent:{runtime:true}};
 }
