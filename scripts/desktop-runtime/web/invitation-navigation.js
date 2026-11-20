@@ -17,10 +17,19 @@ export function invitationLabel(snapshot) {
 // A display request may open a different frame. Keep the transcript entry
 // compact until the host confirms expansion of this instance.
 export function shouldExpandInvitation(context,{requested=false,previousMode=null,requestVersion=0,contextVersion=0}={}){
- return requestVersion===contextVersion&&(context?.displayMode??context?.mode)==='fullscreen'&&(requested||previousMode==='inline');
+ return requestVersion===contextVersion&&context?.displayMode==='fullscreen'&&(requested||previousMode==='inline');
 }
 
 export function invitationModeAfterHostChange(currentInline,context,options={}){
  if(context?.displayMode==='inline')return true;
  return shouldExpandInvitation(context,options)?false:currentInline;
+}
+
+// Only a context notification for this frame may change its placement. A
+// request result can describe another frame the host just opened.
+export function inlineFrameAfterContext(previousInline,context,{source='host-context'}={}){
+ if(source!=='host-context')return previousInline;
+ if(context?.displayMode==='inline')return true;
+ if(context?.displayMode==='fullscreen')return false;
+ return previousInline;
 }

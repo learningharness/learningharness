@@ -13,7 +13,7 @@ if(!/^phc_[a-zA-Z0-9_-]+$/.test(token??'')||!['https://us.i.posthog.com','https:
 await buildUI({configFile:'scripts/desktop-runtime/vite.config.mjs'});
 await rm(root,{recursive:true,force:true});await mkdir(join(plugin,'.codex-plugin'),{recursive:true});await mkdir(join(plugin,'hooks'),{recursive:true});await mkdir(join(root,'.agents/plugins'),{recursive:true});
 const json=async(path,value)=>writeFile(path,JSON.stringify(value,null,2)+'\n');
-const bundled=await bundle({entryPoints:{...(process.env.LH_DESKTOP_CANDIDATE==='1'?{'desktop-controls':'scripts/desktop-controls/entry.mjs'}:{}),server:'scripts/codex-release/server.mjs','runtime-service':'scripts/desktop-runtime/runtime-service.mjs','chain-hook':'scripts/desktop-runtime/chain-hook.mjs'},outdir:plugin,outExtension:{'.js':'.mjs'},bundle:true,platform:'node',format:'esm',target:'node22',sourcemap:false,metafile:true,legalComments:'none',plugins:[{name:'codex-only-release',setup(b){
+const bundled=await bundle({entryPoints:{...(process.env.LH_DESKTOP_CANDIDATE==='1'?{'desktop-controls':'scripts/desktop-controls/entry.mjs'}:{}),server:'scripts/codex-release/server.mjs','runtime-service':'scripts/desktop-runtime/runtime-service.mjs','chain-hook':'scripts/desktop-runtime/chain-hook.mjs'},outdir:plugin,outExtension:{'.js':'.mjs'},bundle:true,platform:'node',format:'esm',target:'node22',define:{'process.env.LEARNING_HARNESS_PLUGIN_VERSION':JSON.stringify(version)},sourcemap:false,metafile:true,legalComments:'none',plugins:[{name:'codex-only-release',setup(b){
  b.onResolve({filter:/(?:^|\/)host-adapter\.mjs$/},()=>({path:resolve('scripts/codex-release/host-adapter.mjs')}));
  b.onResolve({filter:/(?:^|\/)chain\.mjs$/},()=>({path:resolve('scripts/codex-release/chain.mjs')}));
 }}]});

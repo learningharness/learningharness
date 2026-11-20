@@ -1,3 +1,4 @@
+import {uiResource,pluginVersion,resolveUIResource} from '../desktop-runtime/ui-resource.mjs';
 import {settingsExtensions,settingsTools,settingsCall} from './settings-entry.mjs';
 import {readNavigationIcons} from './navigation-icons.mjs';
 import {publishPrepared,readPrepared,presentationState} from '../desktop-runtime/prepared-invitation.mjs';
@@ -9,30 +10,31 @@ import {runtimeCall} from '../desktop-runtime/runtime-client.mjs';
 import {personalTools,personalCall} from '../desktop-runtime/personalization.mjs';
 import {chainDirectory,readChain,writeChain,invitationUri} from './chain.mjs';
 import {hostID,identityFrom,presentation} from './host-adapter.mjs';
-const enableUri='ui://learning-harness/enable/learn';
-const uri='ui://learning-harness/v19/learn',settingsUri='ui://learning-harness/v19/settings';
-const journeyUri='ui://learning-harness/v20/journey';
+const enableUri=uiResource(hostID,'enable');
+const uri=uiResource(hostID,'learn'),settingsUri=uiResource(hostID,'settings');
+const journeyUri=uiResource(hostID,'journey');
 const html=readFileSync(new URL('./view.html',import.meta.url),'utf8');
 const icons=hostID==='codex'?readNavigationIcons(new URL('./assets/',import.meta.url)):undefined;
 const app={ui:{visibility:['app']}};
 const transport=['native_status','native_command','native_job','native_setup'];
 const tools=[...(hostID==='codex'?settingsTools:[]),...personalTools,...manualControlTools,
  {name:'show_startup_invitation',title:'LearningHarness',description:'Display the startup invitation once after its startup control signal. Do not open Learn or enable learning automatically.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},_meta:{ui:{resourceUri:startupUri}}},
- ...['read_startup_invitation','dismiss_startup_invitation','claim_startup_view'].map(name=>({name,description:'Startup invitation controls for the exact host chat.',inputSchema:{type:'object',properties:{},additionalProperties:false},_meta:app})),...transport.map(name=>({name,description:'Learning UI transport for this exact Codex chat.',inputSchema:{type:'object',properties:{input:{type:'object'},profile:{type:'object'},limits:{type:'object'},job:{type:'string'},scope:{type:'string',enum:['global','chat']}},additionalProperties:false},_meta:app})),
+ ...['read_startup_invitation','dismiss_startup_invitation','claim_startup_view'].map(name=>({name,description:'Startup invitation controls for the exact host chat.',inputSchema:{type:'object',properties:{},additionalProperties:false},_meta:app})),...transport.map(name=>({name,description:'Learning UI transport for this exact Codex chat.',inputSchema:{type:'object',properties:{input:{type:'object'},profile:{type:'object'},allowInline:{type:'boolean'},presentation:{type:'string',enum:['inline','sidebar']},limits:{type:'object'},job:{type:'string'},scope:{type:'string',enum:['global','chat']}},additionalProperties:false},_meta:app})),
  ...[['open_learn',uri,'chat'],['open_global_settings',settingsUri,'global']].map(([name,resourceUri,scope])=>({name,...(icons?{icons}:{}),title:scope==='global'?'LearningHarness settings':'Open LearningHarness',description:'Open the LearningHarness side panel when the user explicitly asks to open Learn or LearningHarness. This only opens the view; it does not generate a lesson or change the coding task.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},_meta:{ui:{resourceUri,visibility:scope==='chat'?['model','app']:['app']},...(hostID==='codex'&&scope==='global'?{}:presentation.entryMetadata(scope))}})),
  ...(hostID==='codex'?[{name:'open_learning_journey',icons,title:'LearningHarness',description:'Open saved learning across coding chats. Reading saved teaching is local and does not enable learning or start a model request.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},_meta:{ui:{resourceUri:journeyUri,visibility:['app']},...presentation.entryMetadata('global')}}]:[]),
  {name:'show_ready_invitation',title:'Learning opportunity',description:'Show a prepared invitation after the readiness signal. Returns no lesson data.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},_meta:{ui:{resourceUri:invitationUri}}},
  ...['read_prepared_invitation','open_prepared_invitation'].map(name=>({name,description:'Saved learning invitation for the exact host chat.',inputSchema:{type:'object',properties:{invitationId:{type:'string'},displayMode:{type:'string',enum:['inline','fullscreen']}},required:['invitationId'],additionalProperties:false},_meta:app})),
  ...['read_chain_opportunity','record_chain_opened'].map(name=>({name,description:'Prepared learning opportunity access for this exact chat.',inputSchema:{type:'object',properties:{},additionalProperties:false},_meta:app}))];
 export async function respond(method,p={}){
- if(method==='initialize')return {protocolVersion:'2025-11-25',capabilities:{tools:{},resources:{},extensions:{'io.modelcontextprotocol/ui':{mimeTypes:['text/html;profile=mcp-app']},...(hostID==='codex'?settingsExtensions:{})}},serverInfo:{name:'learning-harness',title:'LearningHarness',version:'1.0.0-beta.63',...(icons?{icons}:{})}};
+ if(method==='initialize')return {protocolVersion:'2025-11-25',capabilities:{tools:{},resources:{},extensions:{'io.modelcontextprotocol/ui':{mimeTypes:['text/html;profile=mcp-app']},...(hostID==='codex'?settingsExtensions:{})}},serverInfo:{name:'learning-harness',title:'LearningHarness',version:pluginVersion,...(icons?{icons}:{})}};
  if(method==='ping')return {};
  if(method==='tools/list')return {tools};
  if(method==='resources/list')return {resources:[...(hostID==='codex'?[{uri:journeyUri,name:'Learning Journey',mimeType:'text/html;profile=mcp-app'}]:[]),{uri,name:'Learn',mimeType:'text/html;profile=mcp-app'},{uri:settingsUri,name:'LearningHarness settings',mimeType:'text/html;profile=mcp-app'}]};
  if(method==='resources/read'){
-  if(![uri,settingsUri,enableUri,invitationUri,startupUri,...(hostID==='codex'?[journeyUri]:[])].includes(p.uri))throw Error('Unknown resource');
-  const attribute=p.uri===journeyUri?' data-global-journey="true"':p.uri===enableUri?' data-enable-open="true"':p.uri===startupUri?' data-startup-invitation="true"':p.uri===settingsUri?' data-global-settings="true"':p.uri===invitationUri?' data-invitation="true" data-inline-invitation':'';
-  return {contents:[{uri:p.uri,mimeType:'text/html;profile=mcp-app',text:html.replace('<html','<html'+attribute),...(p.uri===invitationUri?{_meta:{'openai/ui':{preferredDisplayMode:'inline',availableDisplayModes:['inline','fullscreen']},'openai/widgetMinFrameHeight':0,'openai/widgetHeightHint':40,'openai/widgetShowCodexWidgetInline':true,'openai/widgetHideAttribution':true,'openai/widgetHideActions':true}}:p.uri===startupUri?{_meta:{ui:{prefersBorder:false}}}:{})}]};
+  const resourceUri=resolveUIResource(hostID,p.uri);
+  if(![uri,settingsUri,enableUri,invitationUri,startupUri,...(hostID==='codex'?[journeyUri]:[])].includes(resourceUri))throw Error('Unknown resource');
+  const attribute=resourceUri===journeyUri?' data-global-journey="true"':resourceUri===enableUri?' data-enable-open="true"':resourceUri===startupUri?' data-startup-invitation="true"':resourceUri===settingsUri?' data-global-settings="true"':resourceUri===invitationUri?' data-invitation="true" data-inline-invitation':'';
+  return {contents:[{uri:p.uri,mimeType:'text/html;profile=mcp-app',text:html.replace('<html','<html data-plugin-version="'+pluginVersion+'"'+attribute),...(resourceUri===invitationUri?{_meta:{'openai/ui':{preferredDisplayMode:'inline',availableDisplayModes:['inline','fullscreen']},'openai/widgetMinFrameHeight':0,'openai/widgetHeightHint':40,'openai/widgetShowCodexWidgetInline':true,'openai/widgetHideAttribution':true,'openai/widgetHideActions':true}}:resourceUri===startupUri?{_meta:{ui:{prefersBorder:false}}}:{})}]};
  }
  if(method!=='tools/call'||!tools.some(t=>t.name===p.name))throw Error('Unknown learning request');
  if(hostID==='codex'&&settingsTools.some(tool=>tool.name===p.name))return settingsCall(p.name,p.arguments??{});
@@ -57,11 +59,12 @@ export async function respond(method,p={}){
  }
  if(['read_prepared_invitation','open_prepared_invitation'].includes(p.name)){
   const saved=readPrepared(chainDirectory,id,p.arguments?.invitationId);
-  if(p.name==='read_prepared_invitation'){if(!process.env.DONTDUMB_NATIVE_TEST_NO_SERVICE)void runtimeCall('delivery-receipt',{id,invitationId:saved.id,stage:'acknowledged'}).catch(()=>{});const state=presentationState(chainDirectory,id,saved.id);if(p.arguments?.displayMode==='inline')presentationState(chainDirectory,id,saved.id,{seenInline:true});return {content:[],structuredContent:{invitationId:saved.id,title:saved.title,resumeLesson:p.arguments?.displayMode==='fullscreen'&&(!!state.started||!!state.seenInline)}};}
+  if(p.name==='read_prepared_invitation'){if(!process.env.DONTDUMB_NATIVE_TEST_NO_SERVICE)void runtimeCall('delivery-receipt',{id,invitationId:saved.id,stage:'acknowledged'}).catch(()=>{});const state=presentationState(chainDirectory,id,saved.id);if(p.arguments?.displayMode==='inline')presentationState(chainDirectory,id,saved.id,{seenInline:true});return {content:[],structuredContent:{invitationId:saved.id,title:saved.title,inlineEligible:saved.inlineEligible,resumeLesson:p.arguments?.displayMode==='fullscreen'&&(!!state.started||!!state.seenInline)}};}
   const job=await runtimeCall('open-invitation',{id,target:saved});presentationState(chainDirectory,id,saved.id,{started:true});return {content:[],structuredContent:job};
  }
+ const target=p.name==='show_ready_invitation'?await runtimeCall('invitation-target',{id}):null;
  const chain=readChain(id);if(chain?.status!=='ready')throw Error('No prepared opportunity is ready for this chat');
- if(p.name==='show_ready_invitation'){if(chain.cardAt)return {content:[],structuredContent:{suppressed:true}};const saved=publishPrepared(chainDirectory,id,await runtimeCall('invitation-target',{id}));await runtimeCall('delivery-receipt',{id,invitationId:saved.id,stage:'attempted'});writeChain(id,{...chain,cardAt:Date.now()});return {content:[{type:'text',text:'A learning opportunity is ready.'}],structuredContent:{ready:true,invitationId:saved.id}};}
+ if(p.name==='show_ready_invitation'){if(chain.cardAt)return {content:[],structuredContent:{suppressed:true}};const saved=publishPrepared(chainDirectory,id,target);await runtimeCall('delivery-receipt',{id,invitationId:saved.id,stage:'attempted'});writeChain(id,{...chain,cardAt:Date.now()});return {content:[{type:'text',text:'A learning opportunity is ready.'}],structuredContent:{ready:true,invitationId:saved.id}};}
  if(p.name==='record_chain_opened'){writeChain(id,{...chain,openedAt:Date.now()});return {content:[],structuredContent:{opened:true}};}
  return {content:[],structuredContent:{runtime:true}};
 }

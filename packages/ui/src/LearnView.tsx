@@ -1,3 +1,4 @@
+import {SessionStack} from './SessionStack.js';
 import {WorkJourney} from './WorkJourney.js';
 import {SavedLearning} from './SavedLearning.js';
 import {LessonSections} from './LessonSections.js';
@@ -74,7 +75,7 @@ export function LearnView(props: any) {
     const current = id(); const gen = generation; const ticket=++operation; const client = rpc(); const expectedMomentId = moment()?.id;
     setBusy(true);setLoadingAction(['journey-step','review-topic','start-review','new-moment','select-goal','submit','request','ask','hint','refresh','keep-going','next-move','start-review','create-flashcard-deck','create-confidence-quiz','suggest'].includes(action)?action:null); setError('');if(['disable','stop','pause'].includes(action)){setContextConsent(null);setLocalRequest(null);}
     if (action === 'request') { const text = String(value ?? '').trim(); setLocalRequest({ text, kind: /interactive|hands.on|simulation/i.test(text) ? 'interactive' : /mind.?map/i.test(text) ? 'mind-map' : 'answer', status: 'pending' }); setAsk(''); }
-    try { const next = await client.command({ action, sessionID: current, value, expectedMomentId }); if (id() !== current || gen !== generation || ticket!==operation) return; accept(next); if (action === 'request') setLocalRequest(null); if (action === 'submit') { setDraft(''); setChoice(''); } if (action === 'request' || action === 'ask') setAsk(''); return next; }
+    try { if(['disable','stop','pause'].includes(action))void flushDraft().catch(()=>{});else await flushDraft(); const next = await client.command({ action, sessionID: current, value, expectedMomentId }); if (id() !== current || gen !== generation || ticket!==operation) return; accept(next); if (action === 'request') setLocalRequest(null); if (action === 'submit') { setDraft(''); setChoice(''); } if (action === 'request' || action === 'ask') setAsk(''); return next; }
     catch (e: any) { if (id() === current && gen === generation && ticket===operation) { if (action === 'request') { setLocalRequest({ ...localRequest(), status: 'error', message: e.message || 'Could not finish this request. Try again.' }); void refresh(); } else setError(e.message || 'That learning step could not finish. You can retry or choose another move.'); } }
     finally { if (gen === generation&&ticket===operation){setBusy(false);setLoadingAction(null);} }
   };
@@ -90,12 +91,18 @@ export function LearnView(props: any) {
   };
   onMount(()=>{const handler=(event:KeyboardEvent)=>{const action=learningShortcut(event,/Mac|iPhone|iPad/.test(navigator.platform));if(!action||(props.globalSettingsOnly&&action==='new-moment'))return;event.preventDefault();void control(action);};document.addEventListener('keydown',handler);onCleanup(()=>{document.removeEventListener('keydown',handler);clearTimeout(receiptTimer);});});
   createEffect(() => { const pending = requestPending(); if (pending) queueMicrotask(() => requestAnchor?.scrollIntoView({ block: 'nearest' })); });
-  const saveDraft = (answer: string, selected: string, certainty=confidence()) => {
-    setConfidence(certainty);
-    setDraft(answer); setChoice(selected); if (saveTimer) clearTimeout(saveTimer);
-    const client = rpc(); const sessionID = id(); const momentId = moment()?.id;
-    saveTimer = setTimeout(() => { void client.command({ action: 'save-draft', sessionID, value: { momentId, answer, choice: selected,confidence:certainty } }).catch(() => setError('Your answer is still here, but could not be saved for restart.')); }, 250);
+  let pendingDraft:any=null;let draftWrite=Promise.resolve();
+  const flushDraft=()=>{
+    if(saveTimer)clearTimeout(saveTimer);
+    if(pendingDraft){const input=pendingDraft;pendingDraft=null;const client=rpc();draftWrite=draftWrite.catch(()=>{}).then(()=>client.command(input));}
+    return draftWrite;
   };
+  const saveDraft = (answer:string,selected:string,certainty=confidence())=>{
+    setConfidence(certainty);setDraft(answer);setChoice(selected);if(saveTimer)clearTimeout(saveTimer);
+    pendingDraft={action:'save-draft',sessionID:id(),value:{momentId:moment()?.id,answer,choice:selected,confidence:certainty}};
+    saveTimer=setTimeout(()=>void flushDraft().catch(()=>setError('Your answer is still here, but could not be saved for restart.')),250);
+  };
+  onCleanup(()=>{void flushDraft().catch(()=>{});});
   const next = () => session()?.nextMoves ?? [];
   const activeJourney=()=>state()?.journeys?.find((journey:any)=>journey.id===moment()?.journey?.id);
   const openJourneyStep=(journey:any,index:number)=>void command('journey-step',{id:journey.id,index}).then(result=>{if(result){setTab('session');queueMicrotask(()=>{if(feed)feed.scrollTop=0;});}});
@@ -139,6 +146,7 @@ export function LearnView(props: any) {
 
       <Show when={session()?.upcomingGoals?.list?.length}><aside class="dd-now" aria-label="Learn from the current work"><span class="dd-kicker">New from your coding chat</span><h2>{session().upcomingGoals.list[0].outcome}</h2><Show when={session().upcomingGoals.list[0].insight}><p>{session().upcomingGoals.list[0].insight}</p></Show><Show when={session().upcomingGoals.list[0].path?.length}><p class="dd-topic-path">{session().upcomingGoals.list[0].path.join(' · ')}</p></Show><small>{session().upcomingGoals.list[0].whyNow}</small><button class="dd-secondary" disabled={busy()||!canLearn()} onClick={async()=>{const result=await command('open-upcoming-goals');if(result)chooseGoal(result.session.goals.list[0],0);}}>Explore this</button><button class="dd-link" disabled={busy()} onClick={()=>void command('dismiss-opportunity')}>Not now</button></aside></Show>
         </Show>
+      <Show when={tab()==='session'}><SessionStack history={state()?.history??[]} sessionID={session()?.id}/></Show>
       <Show when={tab() === 'history'}><SavedLearning history={state()?.history??[]} journeys={state()?.journeys??[]} reviews={state()?.learner?.reviews??[]} now={state()?.learner?.now??new Date().toISOString()} disabled={busy()||!canLearn()} onJourney={openJourneyStep} onReview={key=>void command('review-topic',key).then(result=>{if(result)setTab('session');})} onOpen={key=>void command('revisit-lesson',key).then(result=>{if(result){setTab('session');feed?.scrollTo({top:0});}})}/></Show>
       <Show when={tab() === 'settings'}><LearningSettings initialSection={settingsSection()} onReviewSetup={props.onReviewSetup} state={state()} session={session()} command={command} busy={busy()} diagnosticsPath={props.diagnosticsPath}/></Show>
     </>}><LearningLoading assessment={loadingAction()==='submit'||session()?.phase==='assessing'} cancel={()=>void command('pause')}/></Show></div>

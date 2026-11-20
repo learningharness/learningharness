@@ -50,7 +50,7 @@ const VISUAL_TYPES = ['steps', 'timeline', 'compare', 'state', 'flow'];
 function initialState() {
   return { version: 1, enabled: false, globallyStopped: false, fault: null, limits: null,
     sessions: {}, history: [], usage: { input: 0, output: 0, calls: 0 },
-    memory: { topics: {}, sequence: [] }, workGraph:emptyWorkGraph(), ledger: {}, lastLearningTokens: {}, journal: [], settings: { learningModel: null, contentBuilderModel: null, sensitivity: 'learn-balanced', analyticsEnabled: true } };
+    memory: { topics: {}, sequence: [] }, workGraph:emptyWorkGraph(), ledger: {}, lastLearningTokens: {}, journal: [], settings: { learningModel: null, contentBuilderModel: null, sensitivity: 'learn-balanced', allowInline: true, analyticsEnabled: true } };
 }
 function stripFence(text) { const match = String(text).trim().match(/^```(?:html|json)?\s*([\s\S]*?)\s*```$/i); return match ? match[1] : String(text).trim(); }
 // Defense in depth: the observer already redacts, but the engine
@@ -372,7 +372,7 @@ export class LearningEngine {
     for(const session of Object.values(stored?.sessions??{}))if(session.pendingUsage||session.requestStatus?.status==='pending'||['running','prepared'].includes(session.agentRun?.status))interrupted.add(session.id);
     if (stored && stored.version === 1) {
       const storedSensitivity = normalizeSensitivity(stored.settings?.sensitivity) ?? 'learn-balanced';
-      this.state = { ...initialState(), ...stored, sessions: stored.sessions ?? {}, memory: stored.memory ?? { topics: {}, sequence: [] }, lastLearningTokens: stored.lastLearningTokens ?? {}, journal: stored.journal ?? [], settings: { learningModel: null, contentBuilderModel: null, ...(stored.settings ?? {}), sensitivity: storedSensitivity, analyticsEnabled: typeof stored.settings?.analyticsEnabled === 'boolean' ? stored.settings.analyticsEnabled : true } };
+      this.state = { ...initialState(), ...stored, sessions: stored.sessions ?? {}, memory: stored.memory ?? { topics: {}, sequence: [] }, lastLearningTokens: stored.lastLearningTokens ?? {}, journal: stored.journal ?? [], settings: { learningModel: null, contentBuilderModel: null, ...(stored.settings ?? {}), sensitivity: storedSensitivity, allowInline: typeof stored.settings?.allowInline==='boolean'?stored.settings.allowInline:stored.settings?.presentation!=='sidebar', analyticsEnabled: typeof stored.settings?.analyticsEnabled === 'boolean' ? stored.settings.analyticsEnabled : true } };
       if(this.state.limits?.session===50_000&&this.state.limits?.total===2_000_000)this.state.limits={...DEFAULT_USAGE_LIMITS};
       this.state.ledger ??= {};
       // Counter-only recovery retains unknown usage instead of inventing zero.
@@ -901,7 +901,13 @@ export class LearningEngine {
       if(!saved||target.kind==='goal'&&!saved.moment.lesson)throw Error('This older invitation has no complete prebuilt lesson. Open LearningHarness for a new suggestion.');
       if(target.kind==='goal'&&!this.preparedOpportunityCurrent(sessionID,target))throw Error('The captured work changed after this lesson was prepared. Choose its learning topic to refresh it.');
       if(target.kind==='review'&&session.reviewOffer?.id!==target.reviewId)throw Error('This review is no longer due.');
+      const progress=!saved.moment.journey&&this.state.history.find(item=>item.id===saved.moment.id&&item.sessionID===sessionID);
       await this.activateMoment(sessionID,structuredClone(saved.moment),saved.goal);
+      if(progress){
+        for(const key of ['feedback','hint','draft'])session[key]=structuredClone(progress[key]??null);
+        session.askAnswer=structuredClone(progress.help??null);session.moment.completed=Boolean(progress.completed);
+        session.phase=session.feedback?'feedback':'ready';await this.update('prepared-lesson-resumed',sessionID);
+      }
       if(target.kind==='review'){session.reviewOffer=null;await this.persist();}
       return this.snapshot(sessionID);
     });
@@ -1070,8 +1076,10 @@ export class LearningEngine {
       if (!this.state.history.some(item => item.id === help.id)) this.state.history.unshift(JSON.parse(JSON.stringify({ ...help, sessionID, title: help.question, body: help.answer, archivedAt: this.now() })));
       return;
     }
-    if (!s.moment || this.state.history.some(item => item.id === s.moment.id)) return;
-    this.state.history.unshift(JSON.parse(JSON.stringify({ ...s.moment, sessionID, learningContext:learningOrigin(this.state,{...s.moment,sessionID}), feedback: s.feedback, help: s.askAnswer, hint: s.hint, draft: s.draft, archivedAt: this.now() })));
+    if (!s.moment) return;
+    const previous=this.state.history.findIndex(item=>item.id===s.moment.id&&item.sessionID===sessionID);
+    const record=JSON.parse(JSON.stringify({ ...s.moment, sessionID, learningContext:learningOrigin(this.state,{...s.moment,sessionID}), feedback: s.feedback, help: s.askAnswer, hint: s.hint, draft: s.draft, archivedAt: this.now() }));
+    if(previous>=0)this.state.history[previous]=record;else this.state.history.unshift(record);
   }
   async backToGoals(sessionID) {
     const session = this.session(sessionID);
@@ -1179,7 +1187,7 @@ export class LearningEngine {
     catch (error) { this.track('command_failed', input?.sessionID, { action: input?.action }); throw error; }
   }
   async dispatchCommand(input) {
-    if (['enable','disable','stop','set-limits','set-session-launcher','set-sensitivity','set-content-builder-model','set-learning-model','set-context-model','save-learner-profile','refresh-learner','export-learner','import-learner','set-analytics','surface-opened','dismiss-usage-alert','session-context','set-session-focus','pause','resume','save-draft'].includes(input.action)) return this.executeCommand(input);
+    if (['enable','disable','stop','set-limits','set-session-launcher','set-presentation','set-inline-questions','set-presentation-cursor','set-sensitivity','set-content-builder-model','set-learning-model','set-context-model','save-learner-profile','refresh-learner','export-learner','import-learner','set-analytics','surface-opened','dismiss-usage-alert','session-context','set-session-focus','pause','resume','save-draft'].includes(input.action)) return this.executeCommand(input);
     return this.enqueueSession(input.sessionID, () => this.executeCommand(input));
   }
   async enqueueSession(sessionID, work) {
@@ -1226,6 +1234,22 @@ export class LearningEngine {
       this.state.reengagement=acknowledgeReengagement({state:this.state.reengagement,id:value,now:this.now(),settings:this.state.settings.reengagement});
       if(this.state.reengagement.timers.find(timer=>timer.id===value)?.acknowledgedAt)session.reviewReminder.acknowledgedAt=this.now();
       await this.update('review-reminder-acknowledged',sessionID);return this.snapshot(sessionID);
+    }
+    if(action==='set-presentation-cursor'){
+      const session=sessionID&&this.session(sessionID);
+      if(typeof value?.invitationId!=='string'||typeof value?.momentId!=='string'||!session?.preparedLessons||!Object.hasOwn(session.preparedLessons,value.invitationId)||session.moment?.id!==value?.momentId)throw Error('This learning step changed before it could expand');
+      session.presentationCursor={invitationId:value.invitationId,momentId:value.momentId};
+      await this.persist();return this.snapshot(sessionID);
+    }
+    if(action==='set-inline-questions'){
+      if(typeof value!=='boolean')throw Error('Inline questions must be on or off');
+      this.state.settings.allowInline=value;
+      await this.update('inline-question-settings',sessionID);return this.snapshot(sessionID);
+    }
+    if (action === 'set-presentation') {
+      if (!['inline','sidebar'].includes(value)) throw Error('Choose Inline or Sidebar');
+      this.state.settings.presentation=value;this.state.settings.allowInline=value==='inline';
+      await this.update('presentation-settings',sessionID);return this.snapshot(sessionID);
     }
     if (action === 'set-session-launcher') {
       if(this.capabilities.host !== 'claude' || !this.launcherSettings) throw Error('Session launcher settings are available in Claude only');
