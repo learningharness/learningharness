@@ -1,3 +1,4 @@
+import {uiResource,pluginVersion,resolveUIResource} from '../desktop-runtime/ui-resource.mjs';
 import {settingsExtensions,settingsTools,settingsCall} from './settings-entry.mjs';
 import {readNavigationIcons} from './navigation-icons.mjs';
 import {publishPrepared,readPrepared,presentationState} from '../desktop-runtime/prepared-invitation.mjs';
@@ -9,9 +10,9 @@ import {runtimeCall} from '../desktop-runtime/runtime-client.mjs';
 import {personalTools,personalCall} from '../desktop-runtime/personalization.mjs';
 import {chainDirectory,readChain,writeChain,invitationUri} from './chain.mjs';
 import {hostID,identityFrom,presentation} from './host-adapter.mjs';
-const enableUri='ui://learning-harness/enable/learn';
-const uri='ui://learning-harness/v19/learn',settingsUri='ui://learning-harness/v19/settings';
-const journeyUri='ui://learning-harness/v20/journey';
+const enableUri=uiResource(hostID,'enable');
+const uri=uiResource(hostID,'learn'),settingsUri=uiResource(hostID,'settings');
+const journeyUri=uiResource(hostID,'journey');
 const html=readFileSync(new URL('./view.html',import.meta.url),'utf8');
 const icons=hostID==='codex'?readNavigationIcons(new URL('./assets/',import.meta.url)):undefined;
 const app={ui:{visibility:['app']}};
@@ -25,14 +26,15 @@ const tools=[...(hostID==='codex'?settingsTools:[]),...personalTools,...manualCo
  ...['read_prepared_invitation','open_prepared_invitation'].map(name=>({name,description:'Saved learning invitation for the exact host chat.',inputSchema:{type:'object',properties:{invitationId:{type:'string'},displayMode:{type:'string',enum:['inline','fullscreen']}},required:['invitationId'],additionalProperties:false},_meta:app})),
  ...['read_chain_opportunity','record_chain_opened'].map(name=>({name,description:'Prepared learning opportunity access for this exact chat.',inputSchema:{type:'object',properties:{},additionalProperties:false},_meta:app}))];
 export async function respond(method,p={}){
- if(method==='initialize')return {protocolVersion:'2025-11-25',capabilities:{tools:{},resources:{},extensions:{'io.modelcontextprotocol/ui':{mimeTypes:['text/html;profile=mcp-app']},...(hostID==='codex'?settingsExtensions:{})}},serverInfo:{name:'learning-harness',title:'LearningHarness',version:'1.0.0-beta.63',...(icons?{icons}:{})}};
+ if(method==='initialize')return {protocolVersion:'2025-11-25',capabilities:{tools:{},resources:{},extensions:{'io.modelcontextprotocol/ui':{mimeTypes:['text/html;profile=mcp-app']},...(hostID==='codex'?settingsExtensions:{})}},serverInfo:{name:'learning-harness',title:'LearningHarness',version:pluginVersion,...(icons?{icons}:{})}};
  if(method==='ping')return {};
  if(method==='tools/list')return {tools};
  if(method==='resources/list')return {resources:[...(hostID==='codex'?[{uri:journeyUri,name:'Learning Journey',mimeType:'text/html;profile=mcp-app'}]:[]),{uri,name:'Learn',mimeType:'text/html;profile=mcp-app'},{uri:settingsUri,name:'LearningHarness settings',mimeType:'text/html;profile=mcp-app'}]};
  if(method==='resources/read'){
-  if(![uri,settingsUri,enableUri,invitationUri,startupUri,...(hostID==='codex'?[journeyUri]:[])].includes(p.uri))throw Error('Unknown resource');
-  const attribute=p.uri===journeyUri?' data-global-journey="true"':p.uri===enableUri?' data-enable-open="true"':p.uri===startupUri?' data-startup-invitation="true"':p.uri===settingsUri?' data-global-settings="true"':p.uri===invitationUri?' data-invitation="true" data-inline-invitation':'';
-  return {contents:[{uri:p.uri,mimeType:'text/html;profile=mcp-app',text:html.replace('<html','<html'+attribute),...(p.uri===invitationUri?{_meta:{'openai/ui':{preferredDisplayMode:'inline',availableDisplayModes:['inline','fullscreen']},'openai/widgetMinFrameHeight':0,'openai/widgetHeightHint':40,'openai/widgetShowCodexWidgetInline':true,'openai/widgetHideAttribution':true,'openai/widgetHideActions':true}}:p.uri===startupUri?{_meta:{ui:{prefersBorder:false}}}:{})}]};
+  const resourceUri=resolveUIResource(hostID,p.uri);
+  if(![uri,settingsUri,enableUri,invitationUri,startupUri,...(hostID==='codex'?[journeyUri]:[])].includes(resourceUri))throw Error('Unknown resource');
+  const attribute=resourceUri===journeyUri?' data-global-journey="true"':resourceUri===enableUri?' data-enable-open="true"':resourceUri===startupUri?' data-startup-invitation="true"':resourceUri===settingsUri?' data-global-settings="true"':resourceUri===invitationUri?' data-invitation="true" data-inline-invitation':'';
+  return {contents:[{uri:p.uri,mimeType:'text/html;profile=mcp-app',text:html.replace('<html','<html data-plugin-version="'+pluginVersion+'"'+attribute),...(resourceUri===invitationUri?{_meta:{'openai/ui':{preferredDisplayMode:'inline',availableDisplayModes:['inline','fullscreen']},'openai/widgetMinFrameHeight':0,'openai/widgetHeightHint':40,'openai/widgetShowCodexWidgetInline':true,'openai/widgetHideAttribution':true,'openai/widgetHideActions':true}}:resourceUri===startupUri?{_meta:{ui:{prefersBorder:false}}}:{})}]};
  }
  if(method!=='tools/call'||!tools.some(t=>t.name===p.name))throw Error('Unknown learning request');
  if(hostID==='codex'&&settingsTools.some(tool=>tool.name===p.name))return settingsCall(p.name,p.arguments??{});

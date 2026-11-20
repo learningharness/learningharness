@@ -4,23 +4,24 @@ import {globalJourneyRoute} from '../../../packages/experiences/src/global-journ
 import {GlobalLearningJourney} from '../../../packages/ui/src/GlobalLearningJourney';
 import {StartupInvitation} from './StartupInvitation';
 import {Setup} from './Setup';
-import {invitationLabel,shouldExpandInvitation,invitationModeAfterHostChange} from './invitation-navigation.js';
+import {invitationLabel,inlineFrameAfterContext,invitationModeAfterHostChange} from './invitation-navigation.js';
 import {render} from 'solid-js/web';import {createSignal,createEffect,onMount,onCleanup,Show} from 'solid-js';
 import {LearnView} from '../../../packages/ui/src/LearnView';import {connect,tool,request,notify,preparedInvitationId} from './bridge';
 import '../../../packages/ui/src/styles.css';import './style.css';
 function App(){const globalJourney=document.documentElement.dataset.globalJourney==='true';const [journeyStatus,setJourneyStatus]=createSignal<any>();const [journeyNavigation,setJourneyNavigation]=createSignal<any>();const invitationResource=document.documentElement.dataset.invitation==='true';const [connected,setConnected]=createSignal(false),[invitation,setInvitation]=createSignal(document.documentElement.dataset.invitation==='true'),[error,setError]=createSignal(''),[connectionNotice,setConnectionNotice]=createSignal(''),[setupDone,setSetupDone]=createSignal<boolean|null>(null),[showSettings,setShowSettings]=createSignal(false),[hostLabel,setHostLabel]=createSignal('Codex');let latestStatus:any;let timer:any,statusPending=false,surfaceInView=true;let surfaceObserver:IntersectionObserver|undefined;const listeners=new Set<any>();let revision=-1,allowanceRevision:number|null=null;
  const [inlineFrame,setInlineFrame]=createSignal(invitationResource),[allowInline,setAllowInline]=createSignal(true);
  const [preparedInline,setPreparedInline]=createSignal<boolean|undefined>();
+ const [expandedElsewhere,setExpandedElsewhere]=createSignal(false);let originInline=invitationResource;
  const [hiddenInvitation,setHiddenInvitation]=createSignal(false);
  const [invitationText,setInvitationText]=createSignal('Open learning opportunity');
  let savedInvitationId:string|undefined;
  const [lessonOpening,setLessonOpening]=createSignal(false),[lessonFailed,setLessonFailed]=createSignal(false);
  let opening:Promise<void>|null=null,pendingExpansion=false,expansionRequested=false,hostMode:string|null=null,displayVersion=0;
  async function requestExpansion(){
-  const requestVersion=displayVersion;expansionRequested=true;
+  expansionRequested=true;
   const display=await request('ui/request-display-mode',{mode:'fullscreen'});
   if((display?.mode??display?.displayMode)==='inline')throw Error('The host kept this view inline. Try opening the sidebar again.');
-  if(shouldExpandInvitation(display,{requested:true,requestVersion,contextVersion:displayVersion})){setInlineFrame(false);setInvitation(false);}
+  if(originInline&&inlineFrame()){setExpandedElsewhere(true);if(invitationResource)setInvitation(true);}
  }
  function startLesson(expanded=false,resumeCurrent=false){
   if(expanded)setInvitation(false);
@@ -54,11 +55,13 @@ function App(){const globalJourney=document.documentElement.dataset.globalJourne
   if(event.source!==parent||event.data?.method!=='ui/notifications/host-context-changed')return;
   const context=event.data.params;
   receiveGlobalDeepLink(context);
+  const previousMode=hostMode;
+  if(context?.displayMode){hostMode=context.displayMode;setInlineFrame(inlineFrameAfterContext(inlineFrame(),context));}
   if(!invitationResource)return;
-  const inline=invitationModeAfterHostChange(invitation(),context,{requested:expansionRequested,previousMode:hostMode});
+  const inline=invitationModeAfterHostChange(invitation(),context,{requested:expansionRequested,previousMode});
   if(context?.displayMode==='inline'){displayVersion++;expansionRequested=false;pendingExpansion=false;}
-  if(context?.displayMode){hostMode=context.displayMode;setInlineFrame(hostMode==='inline');}
-  setInvitation(inline&&!(opening&&allowInline()));
+  if(context?.displayMode==='fullscreen')setExpandedElsewhere(false);
+  setInvitation(expandedElsewhere()&&inlineFrame()||inline&&!(opening&&allowInline()));
   if(!inline)void startLesson(true);
  };
  window.addEventListener('message',displayChanged);
@@ -93,9 +96,9 @@ function App(){const globalJourney=document.documentElement.dataset.globalJourne
  const original=rpc.command;rpc.command=(input:any)=>original({...input,sessionID:undefined});
  // The native host owns its tab. Do not offer a fake content-only close.
  const ctx={id:'learning-harness',layout:{}};
- onMount(async()=>{try{const root=document.getElementById('root');if(root){surfaceObserver=new IntersectionObserver(entries=>{surfaceInView=entries[0]?.isIntersecting??false;});surfaceObserver.observe(root);}const initialized=await connect();receiveGlobalDeepLink(initialized?.hostContext,true);hostMode=initialized?.hostContext?.displayMode??null;setInlineFrame(invitationResource&&hostMode!=='fullscreen');if(document.documentElement.dataset.enableOpen==='true'&&document.documentElement.dataset.learningHost!=='claude'&&hostMode!=='fullscreen')await requestExpansion();if(invitation()){savedInvitationId=await preparedInvitationId();const displayMode=initialized?.hostContext?.displayMode;const saved=await tool('read_prepared_invitation',{invitationId:savedInvitationId,...(['inline','fullscreen'].includes(displayMode)?{displayMode}:{})});setInvitationText(saved.title);setPreparedInline(saved.inlineEligible);pendingExpansion ||= !!saved.resumeLesson;await status();}else await status();setConnected(true);if(pendingExpansion)void startLesson(true,latestStatus?.session?.presentationCursor?.invitationId===savedInvitationId&&latestStatus?.session?.presentationCursor?.momentId===latestStatus?.session?.moment?.id);timer=setInterval(()=>{if(!invitation()&&document.visibilityState==='visible'&&surfaceInView&&!statusPending){statusPending=true;void status().then(s=>{if(s.revision!==revision||(s.allowance?.observedAt??null)!==allowanceRevision){revision=s.revision;allowanceRevision=s.allowance?.observedAt??null;for(const fn of listeners)fn({data:{}});}}).catch(e=>setError(e.message)).finally(()=>{statusPending=false;});}},3000);}catch(e:any){if(e.message==='INVITATION_ALREADY_SHOWN'){setHiddenInvitation(true);setConnected(true);}else setError(e.message);}});onCleanup(()=>{clearInterval(timer);surfaceObserver?.disconnect();window.removeEventListener('message',displayChanged);});
+ onMount(async()=>{try{const root=document.getElementById('root');if(root){surfaceObserver=new IntersectionObserver(entries=>{surfaceInView=entries[0]?.isIntersecting??false;});surfaceObserver.observe(root);}const initialized=await connect();receiveGlobalDeepLink(initialized?.hostContext,true);hostMode=initialized?.hostContext?.displayMode??null;originInline=hostMode==='inline'||invitationResource&&hostMode!=='fullscreen';setInlineFrame(originInline);if(document.documentElement.dataset.enableOpen==='true'&&document.documentElement.dataset.learningHost!=='claude'&&hostMode!=='fullscreen')await requestExpansion();if(invitation()){savedInvitationId=await preparedInvitationId();const displayMode=initialized?.hostContext?.displayMode;const saved=await tool('read_prepared_invitation',{invitationId:savedInvitationId,...(['inline','fullscreen'].includes(displayMode)?{displayMode}:{})});setInvitationText(saved.title);setPreparedInline(saved.inlineEligible);pendingExpansion ||= !!saved.resumeLesson;await status();}else await status();setConnected(true);if(pendingExpansion)void startLesson(true,latestStatus?.session?.presentationCursor?.invitationId===savedInvitationId&&latestStatus?.session?.presentationCursor?.momentId===latestStatus?.session?.moment?.id);timer=setInterval(()=>{if(!invitation()&&document.visibilityState==='visible'&&surfaceInView&&!statusPending){statusPending=true;void status().then(s=>{if(s.revision!==revision||(s.allowance?.observedAt??null)!==allowanceRevision){revision=s.revision;allowanceRevision=s.allowance?.observedAt??null;for(const fn of listeners)fn({data:{}});}}).catch(e=>setError(e.message)).finally(()=>{statusPending=false;});}},3000);}catch(e:any){if(e.message==='INVITATION_ALREADY_SHOWN'){setHiddenInvitation(true);setConnected(true);}else setError(e.message);}});onCleanup(()=>{clearInterval(timer);surfaceObserver?.disconnect();window.removeEventListener('message',displayChanged);});
  const expandQuestion=async(momentId?:string)=>{
-  if(momentId)await rpc.command({action:'set-presentation-cursor',value:{invitationId:savedInvitationId,momentId},expectedMomentId:momentId});
+  if(momentId&&savedInvitationId)await rpc.command({action:'set-presentation-cursor',value:{invitationId:savedInvitationId,momentId},expectedMomentId:momentId});
   await requestExpansion();
  };
  return <Show when={connected()} fallback={<p role="status">{error()||'Connecting to LearningHarness…'}</p>}>
@@ -126,14 +129,14 @@ function App(){const globalJourney=document.documentElement.dataset.globalJourne
         </Show>
        </Show>
       </>
-     }><InlineQuestion session={session} onExpand={expandQuestion}/></Show>
+     }><Show when={invitationResource&&!expandedElsewhere()} fallback={<section><button class="dd-link" onClick={()=>void requestExpansion().catch(e=>setError(e.message))}>Open LearningHarness in sidebar ↗</button><Show when={error()}><p role="alert">{error()}</p></Show></section>}><InlineQuestion session={session} onExpand={expandQuestion}/></Show></Show>
     </Show>
    </Show>
   }>
    <section hidden={hiddenInvitation()} ref={invitationCard} class="lh-invitation" aria-label="LearningHarness invitation">
-    <button disabled={lessonOpening()} onClick={()=>void startLesson()}>
+    <button disabled={lessonOpening()} onClick={()=>void (expandedElsewhere()?requestExpansion().catch(e=>setError(e.message)):startLesson())}>
      <svg class="lh-invitation-mark" aria-hidden="true" viewBox="0 0 120 120"><g fill="currentColor" transform="translate(10 10)"><path d="M0 0h20v80h20V60h20v40H0Z"/><path d="M40 0h60v100H80V20H60v20H40Z"/></g></svg>
-     <span>{invitationText()} <span aria-hidden="true">↗</span></span>
+     <span>{expandedElsewhere()?'Open in sidebar':invitationText()} <span aria-hidden="true">↗</span></span>
     </button>
     <Show when={error()}><p class="lh-invitation-error" role="alert">{error()}</p></Show>
    </section>

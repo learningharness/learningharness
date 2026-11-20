@@ -15,11 +15,12 @@ createServer((req,res)=>{
  const state=fixture.state,jobs={},app=document.getElementById('app');app.src='/app'+(onboarding?'':'?invitation')+(claude?(onboarding?'?':'&')+'claude':'');
  window.addEventListener('message',e=>{
  const frames=[...document.querySelectorAll('iframe')],frame=frames.find(f=>f.contentWindow===e.source);if(!frame)return;const m=e.data;
- if(m.method==='ui/notifications/size-changed'&&frame===app&&!onboarding)app.style.height=Math.max(40,m.params.height)+'px';
- if(m.id===undefined)return;fixture.calls.push({method:m.method,params:m.params});let result={};const fullscreen=frame.id==='sidebar';
+ if(m.method==='ui/notifications/size-changed'&&frame===app&&!onboarding&&frame.dataset.fullscreen!=='true')app.style.height=Math.max(40,m.params.height)+'px';
+ if(m.id===undefined)return;fixture.calls.push({method:m.method,params:m.params});let result={};const fullscreen=frame.id==='sidebar'||frame.dataset.fullscreen==='true'||onboarding;
  if(m.method==='ui/initialize'){result={hostContext:{displayMode:fullscreen?'fullscreen':'inline'},hostCapabilities:{}};setTimeout(()=>e.source.postMessage({jsonrpc:'2.0',method:'ui/notifications/tool-result',params:{structuredContent:{invitationId,chatBinding:'a'.repeat(64)}}},'*'),20);}
  if(m.method==='ui/request-display-mode'&&params.has('deny'))result={mode:'inline'};
- else if(m.method==='ui/request-display-mode'){let side=document.getElementById('sidebar');if(!side){side=document.createElement('iframe');side.id='sidebar';side.title='LearningHarness sidebar';side.style='border:0;border-left:1px solid #555;width:50%;height:100vh';app.style.width='50%';side.src='/app?invitation'+(claude?'&claude':'');document.getElementById('shell').append(side);}result={};}
+ else if(m.method==='ui/request-display-mode'&&params.has('same-frame')){frame.dataset.fullscreen='true';frame.title='LearningHarness sidebar';frame.style='border:0;width:100%;height:100vh';e.source.postMessage({jsonrpc:'2.0',method:'ui/notifications/host-context-changed',params:{displayMode:'fullscreen'}},'*');result={mode:'fullscreen'};}
+ else if(m.method==='ui/request-display-mode'){let side=document.getElementById('sidebar');if(!side){side=document.createElement('iframe');side.id='sidebar';side.title='LearningHarness sidebar';side.style='border:0;border-left:1px solid #555;width:50%;height:100vh';app.style.width='50%';side.src='/app?invitation'+(claude?'&claude':'');document.getElementById('shell').append(side);}result=params.has('fullscreen-reply')?{mode:'fullscreen'}:{};if(params.has('context-inline'))setTimeout(()=>e.source.postMessage({jsonrpc:'2.0',method:'ui/notifications/host-context-changed',params:{displayMode:'inline'}},'*'),50);}
  if(m.method==='tools/call'){const {name,arguments:a={}}=m.params;let value={};if(name==='read_prepared_invitation')value={title:lesson.title,inlineEligible:!params.has('heavy'),resumeLesson:fullscreen};
  if(name==='native_status')value=state;
  if(name==='open_prepared_invitation'){if(!state.session.moment)state.session.moment=structuredClone(lesson);jobs.open={status:'ready',result:state};value={job:'open',...jobs.open};}

@@ -19,10 +19,8 @@ for(const file of await readdir(join(uiDir,'assets'))){const text=await readFile
 html=html.replace('<html','<html data-learning-host="claude"');if(/(?:src|href)="\/assets\//.test(html))throw Error('Unbundled candidate view');await writeFile(join(root,'view.html'),html);
 const canonicalPath=resolve('scripts/codex-release/server.mjs');
 const canonical=(await readFile(canonicalPath,'utf8')).split('// A live MCP connection')[0]
- .replace("const uri='ui://learning-harness/v19/learn',settingsUri='ui://learning-harness/v19/settings';","const uri='ui://learning-harness/claude/v1/learn',settingsUri='ui://learning-harness/claude/v1/settings';")
- .replace(/version:'1\.0\.0-beta\.\d+'/,`version:'${version}'`)
  .replaceAll('exact Codex chat','exact Claude Code chat').replaceAll('Codex has not supplied','Claude has not supplied')
- .replace("p.uri===invitationUri?' data-invitation=\"true\" data-inline-invitation':''","p.uri===invitationUri?' data-invitation=\"true\" data-inline-invitation':' data-claude-launcher=\"true\"'")
+ .replace("resourceUri===invitationUri?' data-invitation=\"true\" data-inline-invitation':''","resourceUri===invitationUri?' data-invitation=\"true\" data-inline-invitation':' data-claude-launcher=\"true\"'")
  .replace("{_meta:{'openai/ui':{preferredDisplayMode:'inline',availableDisplayModes:['inline','fullscreen']},'openai/widgetMinFrameHeight':0,'openai/widgetHeightHint':40,'openai/widgetShowCodexWidgetInline':true,'openai/widgetHideAttribution':true,'openai/widgetHideActions':true}}","{_meta:{ui:{prefersBorder:false}}}");
 if(canonical.includes('openai/'))throw Error('Claude candidate must not copy OpenAI presentation metadata');
 const alias={name:'claude-host-boundary',setup(build){
@@ -33,7 +31,7 @@ const alias={name:'claude-host-boundary',setup(build){
   if(args.path.endsWith('chain.mjs'))return {path:resolve('scripts/claude-release/chain.mjs')};
  });
 }};
-for(const [name,source] of [['server','scripts/claude-release/server.mjs'],['runtime-service','scripts/desktop-runtime/runtime-service.mjs'],['hook','scripts/claude-release/hook.mjs'],['entry-status','scripts/claude-release/entry-status.mjs']])await bundle({entryPoints:[source],outfile:join(root,name+'.mjs'),bundle:true,platform:'node',format:'esm',target:'node22',plugins:[alias],define:{'process.env.LEARNING_HARNESS_HOST':'"claude"'},banner:{js:"import {createRequire} from 'node:module';const require=createRequire(import.meta.url);"}});
+for(const [name,source] of [['server','scripts/claude-release/server.mjs'],['runtime-service','scripts/desktop-runtime/runtime-service.mjs'],['hook','scripts/claude-release/hook.mjs'],['entry-status','scripts/claude-release/entry-status.mjs']])await bundle({entryPoints:[source],outfile:join(root,name+'.mjs'),bundle:true,platform:'node',format:'esm',target:'node22',plugins:[alias],define:{'process.env.LEARNING_HARNESS_HOST':'"claude"','process.env.LEARNING_HARNESS_PLUGIN_VERSION':JSON.stringify(version)},banner:{js:"import {createRequire} from 'node:module';const require=createRequire(import.meta.url);"}});
 await bundle({entryPoints:['scripts/claude-release/entry-register.mjs'],outfile:join(root,'register.mjs'),bundle:true,platform:'node',format:'esm',target:'node22'});
 await writeFile(join(root,'.claude-plugin/plugin.json'),JSON.stringify({name:'learningharness',displayName:'LearningHarness',version,author:{name:'LearningHarness'},homepage:'https://learningharness.dev',repository:'https://github.com/learningharness/learningharness',icon:'./assets/icon.png',description:'Learn beside Claude Code. Requires the local Claude Code CLI signed in with an active Claude subscription; Desktop sign-in alone may not cover it. Uses normal Claude login, no password or token collection.'},null,2));
 await writeFile(join(root,'.claude-plugin/marketplace.json'),JSON.stringify({name:'learningharness-claude-candidate',description:'LearningHarness native Claude Code candidate. Requires normal Claude Code CLI subscription sign-in.',owner:{name:'LearningHarness'},plugins:[{name:'learningharness',source:'./',description:'A tutor beside Claude Code. Requires normal Claude Code CLI subscription sign-in.'}]},null,2));

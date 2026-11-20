@@ -35,7 +35,7 @@ test('due reviews use their concept title in the compact invitation',()=>{
 test('opening a separate lesson view does not enlarge the original inline invitation',async()=>{
  const {shouldExpandInvitation}=await import('./web/invitation-navigation.js');
  assert.equal(shouldExpandInvitation({}, {requested:true}),false,'an acknowledged request is not evidence that this frame expanded');
- assert.equal(shouldExpandInvitation({mode:'fullscreen'}, {requested:true}),true);
+ assert.equal(shouldExpandInvitation({mode:'fullscreen'}, {requested:true}),false,'a request result may describe a separate frame');
  assert.equal(shouldExpandInvitation({displayMode:'fullscreen'}, {previousMode:'inline'}),true);
  assert.equal(shouldExpandInvitation({displayMode:'fullscreen'}, {}),false,'initial default is not a transition');
  assert.equal(shouldExpandInvitation({displayMode:'inline'}, {requested:true}),false);
@@ -47,4 +47,14 @@ test('closing fullscreen restores only the link, and late expansion acknowledgme
  assert.equal(invitationModeAfterHostChange(false,{displayMode:'inline'}),true);
  assert.equal(invitationModeAfterHostChange(true,{displayMode:'fullscreen'},{requested:true}),false);
  assert.equal(shouldExpandInvitation({mode:'fullscreen'},{requested:true,requestVersion:0,contextVersion:1}),false);
+});
+test('a fullscreen request result never promotes the original transcript frame',async()=>{
+ const {shouldExpandInvitation}=await import('./web/invitation-navigation.js');
+ assert.equal(shouldExpandInvitation({mode:'fullscreen'},{requested:true}),false);
+});
+test('request replies cannot change placement, but real same-frame context changes can',async()=>{
+ const {inlineFrameAfterContext}=await import('./web/invitation-navigation.js');
+ for(const displayMode of ['inline','fullscreen',undefined])assert.equal(inlineFrameAfterContext(true,{displayMode},{source:'request-result'}),true);
+ assert.equal(inlineFrameAfterContext(true,{displayMode:'fullscreen'}),false);
+ assert.equal(inlineFrameAfterContext(false,{displayMode:'inline'}),true);
 });
