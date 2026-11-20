@@ -1,3 +1,4 @@
+import {openPreparedJob,preparedPlacement} from './prepared-opening.mjs';
 import {restorePreparedMoment} from './prepared-target.mjs';
 import {isNativeCommand} from './command-policy.mjs';
 import {requireWorkContext} from './work-context.mjs';
@@ -112,14 +113,14 @@ async function handle(method, p) {
   if(method==='delivery-receipt'){try{return await recordDeliveryReceipt(deliveryLedger,p);}catch(error){engine.record('native_delivery_failed',id,{status:'unavailable'});throw error;}}
   if(method==='invitation-target'){
     if(!validSessionId(id))throw Error('Exact chat identity required');
-    let chain=readChain(id);const restored=restorePreparedMoment(chain,engine.session(id),engine.state);if(restored){writeChain(id,restored);chain=restored;}if(chain?.status==='ready'&&chain.preparedTarget&&engine.session(id).preparedLessons?.[chain.preparedTarget.id]){await deliveryLedger?.record(id,chain.runtimeKey,'prepared',{invitationId:chain.preparedTarget.id}).catch(()=>engine.record('native_delivery_failed',id,{status:'unavailable'}));return chain.preparedTarget;}
+    let chain=readChain(id);const restored=restorePreparedMoment(chain,engine.session(id),engine.state);if(restored){writeChain(id,restored);chain=restored;}if(chain?.status==='ready'&&chain.preparedTarget&&engine.session(id).preparedLessons?.[chain.preparedTarget.id]){await deliveryLedger?.record(id,chain.runtimeKey,'prepared',{invitationId:chain.preparedTarget.id}).catch(()=>engine.record('native_delivery_failed',id,{status:'unavailable'}));return {...chain.preparedTarget,inlineEligible:preparedPlacement(engine.session(id),chain.preparedTarget)};}
     throw Error('No prepared content is available');
   }
   if(method==='open-invitation'){
     if(!validSessionId(id))throw Error('Exact chat identity required');
-    const key=crypto.randomUUID();await jobs.create(key,id);
-    void engine.openPreparedOpportunity(id,p.target).then(async result=>{await recordOpeningReceipt(deliveryLedger,id,p.target.id,()=>engine.record('native_delivery_failed',id,{status:'unavailable'}));return jobs.settle(key,{status:'ready',result});}).catch(error=>jobs.settle(key,{status:'error',error:error.message})).catch(()=>{engine.record('native_operation_unavailable',id,{status:'error'});});
-    return {job:key};
+    return openPreparedJob({id,jobs,open:()=>engine.openPreparedOpportunity(id,p.target),
+      afterOpen:()=>recordOpeningReceipt(deliveryLedger,id,p.target.id,()=>engine.record('native_delivery_failed',id,{status:'unavailable'})),
+      onFailure:()=>engine.record('native_operation_unavailable',id,{status:'error'})});
   }
   if(method==='setup'){
     if(p.allowInline!==undefined)await engine.command({action:'set-inline-questions',value:p.allowInline});

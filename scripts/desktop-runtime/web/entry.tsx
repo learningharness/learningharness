@@ -10,6 +10,7 @@ import {LearnView} from '../../../packages/ui/src/LearnView';import {connect,too
 import '../../../packages/ui/src/styles.css';import './style.css';
 function App(){const globalJourney=document.documentElement.dataset.globalJourney==='true';const [journeyStatus,setJourneyStatus]=createSignal<any>();const [journeyNavigation,setJourneyNavigation]=createSignal<any>();const invitationResource=document.documentElement.dataset.invitation==='true';const [connected,setConnected]=createSignal(false),[invitation,setInvitation]=createSignal(document.documentElement.dataset.invitation==='true'),[error,setError]=createSignal(''),[connectionNotice,setConnectionNotice]=createSignal(''),[setupDone,setSetupDone]=createSignal<boolean|null>(null),[showSettings,setShowSettings]=createSignal(false),[hostLabel,setHostLabel]=createSignal('Codex');let latestStatus:any;let timer:any,statusPending=false,surfaceInView=true;let surfaceObserver:IntersectionObserver|undefined;const listeners=new Set<any>();let revision=-1,allowanceRevision:number|null=null;
  const [inlineFrame,setInlineFrame]=createSignal(invitationResource),[allowInline,setAllowInline]=createSignal(true);
+ const [preparedInline,setPreparedInline]=createSignal<boolean|undefined>();
  const [hiddenInvitation,setHiddenInvitation]=createSignal(false);
  const [invitationText,setInvitationText]=createSignal('Open learning opportunity');
  let savedInvitationId:string|undefined;
@@ -18,7 +19,7 @@ function App(){const globalJourney=document.documentElement.dataset.globalJourne
  async function requestExpansion(){
   const requestVersion=displayVersion;expansionRequested=true;
   const display=await request('ui/request-display-mode',{mode:'fullscreen'});
-  if((display?.mode??display?.displayMode)==='inline')throw Error('The host kept this view inline. Your answer is saved; try Open in sidebar again.');
+  if((display?.mode??display?.displayMode)==='inline')throw Error('The host kept this view inline. Try opening the sidebar again.');
   if(shouldExpandInvitation(display,{requested:true,requestVersion,contextVersion:displayVersion})){setInlineFrame(false);setInvitation(false);}
  }
  function startLesson(expanded=false,resumeCurrent=false){
@@ -28,15 +29,17 @@ function App(){const globalJourney=document.documentElement.dataset.globalJourne
   setLessonOpening(true);setLessonFailed(false);setError('');
   opening=(async()=>{try{
    // Request placement during the click, before awaiting any local tool call.
-   if(!expanded&&!allowInline())await requestExpansion();
+   if(!expanded&&(!allowInline()||preparedInline()===false))await requestExpansion();
    else setInvitation(false);
    if(resumeCurrent){await status();return;}
    const job=await tool('open_prepared_invitation',{invitationId:savedInvitationId});
    if(!job?.job)throw Error('The lesson could not start. Please retry.');
-   const deadline=Date.now()+330000;let ready=false;
-   while(Date.now()<deadline){const r=await tool('native_job',{job:job.job,scope});if(r.status==='error')throw Error(r.error);if(r.status==='ready'){ready=true;break;}await new Promise(resolve=>setTimeout(resolve,600));}
-   if(!ready)throw Error('The lesson is taking longer than expected. Please retry.');
-   await status();if(!expanded&&inlineFrame()&&allowInline()&&!quickQuestion(latestStatus?.session?.moment))await requestExpansion();void tool('record_chain_opened').catch(()=>{});
+   const deadline=Date.now()+330000;let result=job;
+   while(result.status!=='ready'&&result.status!=='error'&&Date.now()<deadline){result=await tool('native_job',{job:job.job,scope});if(result.status!=='ready'&&result.status!=='error')await new Promise(resolve=>setTimeout(resolve,600));}
+   if(result.status==='error')throw Error(result.error);
+   if(result.status!=='ready')throw Error('The lesson is taking longer than expected. Please retry.');
+   latestStatus={...latestStatus,...result.result};setJourneyStatus(latestStatus);
+   if(!expanded&&inlineFrame()&&allowInline()&&preparedInline()!==false&&!quickQuestion(latestStatus?.session?.moment))await requestExpansion();void tool('record_chain_opened').catch(()=>{});
   }catch(e:any){setError(e.message);setLessonFailed(true);opening=null;}finally{setLessonOpening(false);}})();
   return opening;
  }
@@ -90,7 +93,7 @@ function App(){const globalJourney=document.documentElement.dataset.globalJourne
  const original=rpc.command;rpc.command=(input:any)=>original({...input,sessionID:undefined});
  // The native host owns its tab. Do not offer a fake content-only close.
  const ctx={id:'learning-harness',layout:{}};
- onMount(async()=>{try{const root=document.getElementById('root');if(root){surfaceObserver=new IntersectionObserver(entries=>{surfaceInView=entries[0]?.isIntersecting??false;});surfaceObserver.observe(root);}const initialized=await connect();receiveGlobalDeepLink(initialized?.hostContext,true);hostMode=initialized?.hostContext?.displayMode??null;setInlineFrame(invitationResource&&hostMode!=='fullscreen');if(document.documentElement.dataset.enableOpen==='true'&&document.documentElement.dataset.learningHost!=='claude'&&hostMode!=='fullscreen')await requestExpansion();if(invitation()){savedInvitationId=await preparedInvitationId();const displayMode=initialized?.hostContext?.displayMode;const saved=await tool('read_prepared_invitation',{invitationId:savedInvitationId,...(['inline','fullscreen'].includes(displayMode)?{displayMode}:{})});setInvitationText(saved.title);pendingExpansion ||= !!saved.resumeLesson;await status();}else await status();setConnected(true);if(pendingExpansion)void startLesson(true,latestStatus?.session?.presentationCursor?.invitationId===savedInvitationId&&latestStatus?.session?.presentationCursor?.momentId===latestStatus?.session?.moment?.id);timer=setInterval(()=>{if(!invitation()&&document.visibilityState==='visible'&&surfaceInView&&!statusPending){statusPending=true;void status().then(s=>{if(s.revision!==revision||(s.allowance?.observedAt??null)!==allowanceRevision){revision=s.revision;allowanceRevision=s.allowance?.observedAt??null;for(const fn of listeners)fn({data:{}});}}).catch(e=>setError(e.message)).finally(()=>{statusPending=false;});}},3000);}catch(e:any){if(e.message==='INVITATION_ALREADY_SHOWN'){setHiddenInvitation(true);setConnected(true);}else setError(e.message);}});onCleanup(()=>{clearInterval(timer);surfaceObserver?.disconnect();window.removeEventListener('message',displayChanged);});
+ onMount(async()=>{try{const root=document.getElementById('root');if(root){surfaceObserver=new IntersectionObserver(entries=>{surfaceInView=entries[0]?.isIntersecting??false;});surfaceObserver.observe(root);}const initialized=await connect();receiveGlobalDeepLink(initialized?.hostContext,true);hostMode=initialized?.hostContext?.displayMode??null;setInlineFrame(invitationResource&&hostMode!=='fullscreen');if(document.documentElement.dataset.enableOpen==='true'&&document.documentElement.dataset.learningHost!=='claude'&&hostMode!=='fullscreen')await requestExpansion();if(invitation()){savedInvitationId=await preparedInvitationId();const displayMode=initialized?.hostContext?.displayMode;const saved=await tool('read_prepared_invitation',{invitationId:savedInvitationId,...(['inline','fullscreen'].includes(displayMode)?{displayMode}:{})});setInvitationText(saved.title);setPreparedInline(saved.inlineEligible);pendingExpansion ||= !!saved.resumeLesson;await status();}else await status();setConnected(true);if(pendingExpansion)void startLesson(true,latestStatus?.session?.presentationCursor?.invitationId===savedInvitationId&&latestStatus?.session?.presentationCursor?.momentId===latestStatus?.session?.moment?.id);timer=setInterval(()=>{if(!invitation()&&document.visibilityState==='visible'&&surfaceInView&&!statusPending){statusPending=true;void status().then(s=>{if(s.revision!==revision||(s.allowance?.observedAt??null)!==allowanceRevision){revision=s.revision;allowanceRevision=s.allowance?.observedAt??null;for(const fn of listeners)fn({data:{}});}}).catch(e=>setError(e.message)).finally(()=>{statusPending=false;});}},3000);}catch(e:any){if(e.message==='INVITATION_ALREADY_SHOWN'){setHiddenInvitation(true);setConnected(true);}else setError(e.message);}});onCleanup(()=>{clearInterval(timer);surfaceObserver?.disconnect();window.removeEventListener('message',displayChanged);});
  const expandQuestion=async(momentId?:string)=>{
   if(momentId)await rpc.command({action:'set-presentation-cursor',value:{invitationId:savedInvitationId,momentId},expectedMomentId:momentId});
   await requestExpansion();

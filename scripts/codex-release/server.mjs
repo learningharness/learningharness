@@ -57,7 +57,7 @@ export async function respond(method,p={}){
  }
  if(['read_prepared_invitation','open_prepared_invitation'].includes(p.name)){
   const saved=readPrepared(chainDirectory,id,p.arguments?.invitationId);
-  if(p.name==='read_prepared_invitation'){if(!process.env.DONTDUMB_NATIVE_TEST_NO_SERVICE)void runtimeCall('delivery-receipt',{id,invitationId:saved.id,stage:'acknowledged'}).catch(()=>{});const state=presentationState(chainDirectory,id,saved.id);if(p.arguments?.displayMode==='inline')presentationState(chainDirectory,id,saved.id,{seenInline:true});return {content:[],structuredContent:{invitationId:saved.id,title:saved.title,resumeLesson:p.arguments?.displayMode==='fullscreen'&&(!!state.started||!!state.seenInline)}};}
+  if(p.name==='read_prepared_invitation'){if(!process.env.DONTDUMB_NATIVE_TEST_NO_SERVICE)void runtimeCall('delivery-receipt',{id,invitationId:saved.id,stage:'acknowledged'}).catch(()=>{});const state=presentationState(chainDirectory,id,saved.id);if(p.arguments?.displayMode==='inline')presentationState(chainDirectory,id,saved.id,{seenInline:true});return {content:[],structuredContent:{invitationId:saved.id,title:saved.title,inlineEligible:saved.inlineEligible,resumeLesson:p.arguments?.displayMode==='fullscreen'&&(!!state.started||!!state.seenInline)}};}
   const job=await runtimeCall('open-invitation',{id,target:saved});presentationState(chainDirectory,id,saved.id,{started:true});return {content:[],structuredContent:job};
  }
  const target=p.name==='show_ready_invitation'?await runtimeCall('invitation-target',{id}):null;
