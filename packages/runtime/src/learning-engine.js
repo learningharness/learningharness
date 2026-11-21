@@ -7,7 +7,7 @@ import {validateCompleteLesson} from '../../experiences/src/complete-lesson.js';
 import {adaptationFor,adaptiveMove,adaptiveInstructions} from '../../learning/src/adaptive-flow.js';
 import {validateContrast} from '../../experiences/src/contrast.js';
 import {validateLearningDesign,learnerBrief,reviewTiming} from '../../learning/src/learning-design.js';
-import {preparationPrompt,preparationCacheKey} from './preparation-prompt.js';
+import {quickOrFullInstructions,preparationPrompt,preparationCacheKey} from './preparation-prompt.js';
 import {validateGeneratedArtifact} from '../../experiences/src/generated-artifact.js';
 import {GenerationQueue} from './generation-queue.js';
 import {flashcardDeck,publicLearningMoment} from '../../experiences/src/flashcard-deck.js';
@@ -926,6 +926,7 @@ export class LearningEngine {
     const adaptive = { failCounts: session.failCounts ?? {}, misconceptions: session.misconceptions ?? {}, transferObjective: session.pendingTransferObjective ?? null, nextPlan: session.nextPlan ?? null };
     let prompt = promptFor(workBrief(trace), memory, relevantMemory(this.state.memory, goal?.skillId, memory), adaptive, this.state.settings?.sensitivity ?? 'learn-balanced');
     if(prepareOnly)prompt=preparationPrompt({goal,trace,review:requireReview,practice:practiceOnly,planJourney,allowInline:this.state.settings?.allowInline,frequency:this.state.settings?.sensitivity});
+    if(learnerInitiated&&!prepareOnly&&request===null&&this.state.settings.allowInline)prompt+='\n'+quickOrFullInstructions.replace(/use teach/g,'use present with experience');
     if (goal && !prepareOnly) prompt += `\n\nSELECTED GOAL: The learner picked this goal, and this moment must teach exactly it, no other goal. Outcome: "${goal.outcome}". Why now: "${goal.whyNow ?? ''}". Kind: ${goal.kind ?? ''}. Minutes: ${goal.minutes ?? ''}. The moment objective must match this outcome, and relevance must cite whyNow, grounded in the snapshot. Do not teach a different goal.`;
     if (suffix) prompt += `\n\nNEXT MOVE: ${suffix}`;
     if (request !== null) prompt += `\n\nLEARNER REQUEST, THIS OVERRIDES SILENT: The learner asked, in their own words: "${request.replace(/"/g, "'")}". Teach exactly what they asked, grounded in the work snapshot if it relates, otherwise teach the concept they named. If they ask for an interactive, execute build_interactive and inspect its result before presenting. If they say they are confused, start with explain, mechanism first, and do not ask them to predict something they just said they do not understand. If they ask a question, answer it in the moment body, then give one first action to check understanding. Do not stay silent for a learner request, unless it asks for a real secret, a coding task solution, or something unrelated to learning. In that case return silent with a concrete reason.`;
@@ -1468,7 +1469,7 @@ export class LearningEngine {
       const request={id:globalThis.crypto.randomUUID(),text:'Create a new learning moment from the current work',kind:'moment',status:'pending',createdAt:this.now()};
       s.requestStatus=request;await this.update('request-started',sessionID);
       this.inflight.add(sessionID);
-      try{const moment=await this.generateMoment(sessionID,{goal:s.selectedGoal,sourceSnapshot:freezeWork(snapshot),requireTeachingProbe:true,suffix:'The learner explicitly requested a new learning moment from the current work. Teach one useful mechanism, honoring their learning focus or selected topic. Provide one concrete teaching item and one related probe, with a private rubric. Use a visual when it explains the mechanism. Do not present a preview or ask them to start another lesson.'});if(!moment)throw Error('No learning moment was produced. Try another topic.');request.status='ready';}
+      try{const moment=await this.generateMoment(sessionID,{goal:s.selectedGoal,sourceSnapshot:freezeWork(snapshot),learnerInitiated:true,requireTeachingProbe:true,suffix:'The learner explicitly requested a new learning moment from the current work. Teach one useful mechanism, honoring their learning focus or selected topic. Choose a short self-contained prediction or quiz when sufficient; otherwise provide a full explanation or visual. Keep the rubric private. Do not present a preview or ask them to start another lesson.'});if(!moment)throw Error('No learning moment was produced. Try another topic.');request.status='ready';}
       catch(error){request.status='error';request.message=error.message;s.requestStatus=request;throw error;}
       finally{this.inflight.delete(sessionID);await this.update('request-finished',sessionID);}
     }
