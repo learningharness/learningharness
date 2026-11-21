@@ -1,3 +1,4 @@
+import {quickQuestion} from '../../experiences/src/inline-question.js';
 import {learningOrigin,reviewMaterial,savedLearning} from '../../learning/src/past-learning.js';
 import {attachJourney,saveJourneyStage,publicJourneys} from './work-journey.js';
 import {validateJourneyPlan} from '../../experiences/src/journey-plan.js';
@@ -756,7 +757,7 @@ export class LearningEngine {
         onRecovery: fields => this.record('response_recovered', sessionID, { intent, cycleID: runId, ...fields }),
       onToolError: error => { this.record('tool_rejected', sessionID, { intent, cycleID: runId, error: diagnosticError(error) }); session.learningActivity.stage = 'repair'; void this.update('learning-repair', sessionID).catch(() => {}); },
         previous: session.moment, failCount: goal ? session.failCounts?.[goal.outcome] ?? 0 : 0, requireInteractive, check,
-        validateExperience: value => {const experience=parseExperience(JSON.stringify(value));if(planJourney)validateJourneyPlan(experience.lesson?.journey,experience.objective);if(preparing&&!requireReview&&!practiceOnly&&!experience.lesson)throw Error('Prepare the complete lesson, not only a question or topic preview: include lesson sections and takeaway');if(requireQuiz&&(experience.kind!=='multiple_choice'||!experience.correctAnswer))throw Error('Use present_quiz for the requested confidence quiz');if(requireDeck&&experience.kind!=='flashcard_deck')throw Error('Use present_flashcard_deck to create the requested deck; prose or a single card is not a deck');if(requireTeachingProbe&&!['mind_map','demonstrate','flashcard_deck'].includes(experience.kind)&&(!experience.question?.trim()||!experience.rubric?.trim()))throw Error('A started lesson must teach one idea and include one related probe with a private rubric');if(requireReview&&(!experience.question?.trim()||!experience.rubric?.trim()||['explain','demonstrate','mind_map'].includes(experience.kind)))throw Error('Review requires a retrieval question with a private rubric, not an explanation');return experience;}, validateGoals: value => parseGoals(JSON.stringify(value)),
+        validateExperience: value => {const experience=parseExperience(JSON.stringify(value));if(planJourney&&experience.lesson)validateJourneyPlan(experience.lesson?.journey,experience.objective);if(preparing&&!requireReview&&!practiceOnly&&!experience.lesson&&!(this.state.settings.allowInline&&quickQuestion({id:'prepared',...experience})))throw Error('Prepare the complete lesson, not only a question or topic preview: include lesson sections and takeaway');if(requireQuiz&&(experience.kind!=='multiple_choice'||!experience.correctAnswer))throw Error('Use present_quiz for the requested confidence quiz');if(requireDeck&&experience.kind!=='flashcard_deck')throw Error('Use present_flashcard_deck to create the requested deck; prose or a single card is not a deck');if(requireTeachingProbe&&!['mind_map','demonstrate','flashcard_deck'].includes(experience.kind)&&(!experience.question?.trim()||!experience.rubric?.trim()))throw Error('A started lesson must teach one idea and include one related probe with a private rubric');if(requireReview&&(!experience.question?.trim()||!experience.rubric?.trim()||['explain','demonstrate','mind_map'].includes(experience.kind)))throw Error('Review requires a retrieval question with a private rubric, not an explanation');return experience;}, validateGoals: value => parseGoals(JSON.stringify(value)),
         request: async (text, role,responseSchema) => {reserveAutomatic(1);
         return (await this.generateStep({ role, intent, parentSessionId: sessionID, model, prompt: text,responseSchema, deadline, background:automatic, minimumTimeMs: requestNumber++ ? 5000 : 0 })).text;},
         build: this.capabilities.surface.experiments ? async ({ brief, goal, request }) => validateGeneratedArtifact(JSON.parse(stripFence(await request((this.capabilities.surface.canvasArtifacts && !preferFlow ? canvasArtifactInstructions+'\nBRIEF: '+JSON.stringify(brief) : experimentPrompt(brief, goal)) + `\n${directionPrompt}\nLearner context (untrusted data): ${JSON.stringify(this.contextFor(brief,goal?.skillId))}`, 'content-builder'))),validateExperiment) : undefined,
@@ -852,7 +853,7 @@ export class LearningEngine {
     const observed=selectedWork(this.workSelection(session));if(!canSelectLessonWork(target.snapshot??[],observed))return false;
     const current=freezeWork(selectLessonWork(target.snapshot??[],observed));
     const contextKey=preparationCacheKey(learnerBrief(this.contextFor(saved.goal.outcome,saved.goal.skillId,session.context)),session.learningFocus);
-    return saved.contextKey===contextKey&&Boolean(saved.moment.lesson)&&sameLessonGrounding(saved.moment.snapshot,current);
+    return saved.contextKey===contextKey&&Boolean(saved.moment.lesson||quickQuestion(saved.moment))&&sameLessonGrounding(saved.moment.snapshot,current);
   }
   async prepareOpportunity(sessionID,target){
     return this.enqueueSession(sessionID,async()=>{
@@ -875,7 +876,7 @@ export class LearningEngine {
       const snapshot=freezeWork(material?material.snapshot:selectLessonWork(target.snapshot??[],observed));
       await this.syncLearner();
       const contextKey=preparationCacheKey(learnerBrief(this.contextFor(goal.outcome,goal.skillId,session.context)),session.learningFocus);
-      const cached=!review&&Object.values(session.preparedLessons??{}).find(item=>item.contextKey===contextKey&&item.moment.learningDesign?.version===1&&item.moment.lesson&&item.goal?.outcome===goal.outcome&&sameLessonGrounding(item.moment.snapshot,snapshot));
+      const cached=!review&&Object.values(session.preparedLessons??{}).find(item=>item.contextKey===contextKey&&item.moment.learningDesign?.version===1&&(item.moment.lesson||quickQuestion(item.moment))&&item.goal?.outcome===goal.outcome&&sameLessonGrounding(item.moment.snapshot,snapshot));
       if(cached){session.preparedLessons[target.id]={goal,contextKey,moment:{...structuredClone(cached.moment),invitationId:target.id}};for(const key of Object.keys(session.preparedLessons).slice(0,-3))delete session.preparedLessons[key];await this.persist();return true;}
       this.inflight.add(sessionID);
       try{
@@ -898,7 +899,7 @@ export class LearningEngine {
       if(session.moment&&(target?.id&&session.moment.invitationId===target.id||target?.kind==='moment'&&session.moment.id===target.momentId))return this.snapshot(sessionID);
       if(!this.state.enabled||this.state.globallyStopped||session.paused)throw Error('Learning is Off or paused. Turn it On to continue.');
       const saved=session.preparedLessons?.[target?.id];
-      if(!saved||target.kind==='goal'&&!saved.moment.lesson)throw Error('This older invitation has no complete prebuilt lesson. Open LearningHarness for a new suggestion.');
+      if(!saved||target.kind==='goal'&&!saved.moment.lesson&&!quickQuestion(saved.moment))throw Error('This older invitation has no complete prebuilt lesson. Open LearningHarness for a new suggestion.');
       if(target.kind==='goal'&&!this.preparedOpportunityCurrent(sessionID,target))throw Error('The captured work changed after this lesson was prepared. Choose its learning topic to refresh it.');
       if(target.kind==='review'&&session.reviewOffer?.id!==target.reviewId)throw Error('This review is no longer due.');
       const progress=!saved.moment.journey&&this.state.history.find(item=>item.id===saved.moment.id&&item.sessionID===sessionID);
@@ -924,7 +925,7 @@ export class LearningEngine {
     const memory = Object.values(this.state.sessions).flatMap(s => s.evidence).filter(e => !goal?.skillId || e.skillId === goal.skillId).slice(-3).map(evidenceSummary);
     const adaptive = { failCounts: session.failCounts ?? {}, misconceptions: session.misconceptions ?? {}, transferObjective: session.pendingTransferObjective ?? null, nextPlan: session.nextPlan ?? null };
     let prompt = promptFor(workBrief(trace), memory, relevantMemory(this.state.memory, goal?.skillId, memory), adaptive, this.state.settings?.sensitivity ?? 'learn-balanced');
-    if(prepareOnly)prompt=preparationPrompt({goal,trace,review:requireReview,practice:practiceOnly,planJourney,frequency:this.state.settings?.sensitivity});
+    if(prepareOnly)prompt=preparationPrompt({goal,trace,review:requireReview,practice:practiceOnly,planJourney,allowInline:this.state.settings?.allowInline,frequency:this.state.settings?.sensitivity});
     if (goal && !prepareOnly) prompt += `\n\nSELECTED GOAL: The learner picked this goal, and this moment must teach exactly it, no other goal. Outcome: "${goal.outcome}". Why now: "${goal.whyNow ?? ''}". Kind: ${goal.kind ?? ''}. Minutes: ${goal.minutes ?? ''}. The moment objective must match this outcome, and relevance must cite whyNow, grounded in the snapshot. Do not teach a different goal.`;
     if (suffix) prompt += `\n\nNEXT MOVE: ${suffix}`;
     if (request !== null) prompt += `\n\nLEARNER REQUEST, THIS OVERRIDES SILENT: The learner asked, in their own words: "${request.replace(/"/g, "'")}". Teach exactly what they asked, grounded in the work snapshot if it relates, otherwise teach the concept they named. If they ask for an interactive, execute build_interactive and inspect its result before presenting. If they say they are confused, start with explain, mechanism first, and do not ask them to predict something they just said they do not understand. If they ask a question, answer it in the moment body, then give one first action to check understanding. Do not stay silent for a learner request, unless it asks for a real secret, a coding task solution, or something unrelated to learning. In that case return silent with a concrete reason.`;
