@@ -1,3 +1,4 @@
+import {uiResource} from '../desktop-runtime/ui-resource.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';import {manualControlCall,manualControlTools} from '../desktop-runtime/manual-actions.mjs';
 const id='11111111-1111-4111-8111-111111111111';
 test('explicit coding-agent controls are separate, fail closed on identity, and expose no learner snapshot',async()=>{
@@ -9,4 +10,4 @@ test('explicit coding-agent controls are separate, fail closed on identity, and 
  await assert.rejects(manualControlCall('turn_learning_on',null,runtime),/identity/);assert.equal(await manualControlCall('unknown',id,runtime),undefined);
 });
 
-test('only explicit On carries the sidebar resource',()=>{assert.equal(manualControlTools[0]._meta.ui.resourceUri,'ui://learning-harness/enable/learn');assert.equal(manualControlTools[1]._meta,undefined);assert.equal(manualControlTools[2]._meta,undefined);});
+test('only explicit On carries the sidebar resource',()=>{assert.equal(manualControlTools[0]._meta.ui.resourceUri,uiResource('codex','enable'));assert.equal(manualControlTools[1]._meta,undefined);assert.equal(manualControlTools[2]._meta,undefined);});

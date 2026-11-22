@@ -1,3 +1,4 @@
+import {uiResource,resolveUIResource} from '../desktop-runtime/ui-resource.mjs';
 // The build supplies canonical-server.mjs from the current Codex release server.
 // Only identity, host metadata and resource names are adapted; learning stays shared.
 import {acknowledgeAutomaticLauncher} from './launcher-control.mjs';
@@ -16,7 +17,7 @@ export async function respond(method,p={}){
  }
  if(method==='resources/read'){
   const result=await canonical(method,p);
-  const explicit=['ui://learning-harness/claude/v1/learn','ui://learning-harness/enable/learn','ui://learning-harness/claude/v1/settings'].includes(p.uri);
+  const explicit=['learn','enable','settings'].map(view=>uiResource('claude',view)).includes(resolveUIResource('claude',p.uri));
   return explicit?{...result,contents:result.contents.map(item=>({...item,_meta:{...item._meta,ui:{...item._meta?.ui,preferredDisplayMode:'fullscreen'}}}))}:result;
  }
  if(method==='tools/call'){

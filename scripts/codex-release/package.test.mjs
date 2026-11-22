@@ -29,7 +29,7 @@ test('relocated customer package exposes learning only, binds host identity and 
   const call=(method,params)=>new Promise((res,rej)=>{const id=++seq;const timer=setTimeout(()=>rej(Error('MCP response timeout')),5000);pending.set(id,r=>{clearTimeout(timer);res(r);});child.stdin.write(JSON.stringify({id,method,params})+'\n');});
   const initialized=(await call('initialize')).result;assert.equal(initialized.serverInfo.name,'learning-harness');assert.equal(initialized.serverInfo.version,packagedManifest.version);
   const listed=(await call('tools/list')).result.tools;
-  const onURI=listed.find(t=>t.name==='turn_learning_on')._meta.ui.resourceUri;assert.equal(onURI,'ui://learning-harness/enable/learn');
+  const onURI=listed.find(t=>t.name==='turn_learning_on')._meta.ui.resourceUri;assert.equal(onURI,`ui://learning-harness/codex/${packagedManifest.version}/enable`);
   assert.match((await call('resources/read',{uri:onURI})).result.contents[0].text,/data-enable-open="true"/);
   assert.equal(listed.find(t=>t.name==='turn_learning_off')._meta,undefined);
   const tools=listed.map(t=>t.name);assert.ok(tools.includes('native_setup'));assert.ok(tools.includes('show_ready_invitation'));assert.ok(tools.includes('open_learn'));for(const name of ['turn_learning_on','turn_learning_off','create_learning_moment']){assert.ok(tools.includes(name));assert.equal(listed.find(t=>t.name===name).annotations.readOnlyHint,false);assert.match((await call('tools/call',{name})).error.message,/identity/);}assert.ok(!tools.includes('arm_chain_trial'));
@@ -73,7 +73,7 @@ test('relocated customer package exposes learning only, binds host identity and 
   assert.equal(invitation._meta['openai/widgetShowCodexWidgetInline'],true,'keep the app inline without its collapsible launcher');
   assert.equal(invitation._meta['openai/widgetHideAttribution'],true);
   assert.equal(invitation._meta['openai/widgetHideActions'],true,'the orange line owns the explicit expansion action');
-  assert.match(invitation.text,/data-inline-invitation/);
+  assert.match(invitation.text,/data-inline-invitation/);const legacyInvitation=(await call('resources/read',{uri:'ui://learning-harness/v19/invitation'})).result.contents[0];assert(legacyInvitation.text.includes(`data-plugin-version="${packagedManifest.version}"`));assert(invitationURI.includes(packagedManifest.version));assert(invitation.text.includes(`data-plugin-version="${packagedManifest.version}"`));
   assert.match((await call('resources/read',{uri:'ui://private-trial'})).error.message,/Unknown/);
   child.stdin.end();await new Promise(resolve=>child.once('exit',resolve));child=null;
   execFileSync('python3',['-c',"import runpy,sys; m=runpy.run_path('scripts/distribution/prepare-release.py'); m['check_archive'](sys.argv[1])",join(output,'learning-harness-codex-1.0.0-beta.63.zip')],{stdio:'ignore'});

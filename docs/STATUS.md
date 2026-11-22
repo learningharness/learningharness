@@ -15,3 +15,7 @@ The development source contains later work, including provisional work/concept g
 Two fresh users completing restart, hook approval and a first useful lesson have not been observed as part of this repository cleanup. Do not claim that study or improved retention/transfer has been established.
 
 Private reports, raw prompts, learner records, internal journals and outreach material are excluded from the public source snapshot. Keep reproducible synthetic tests and concise limits here; a clean repository must not hide failed acceptance behind passing unit tests.
+
+## Inline presentation branch
+
+`codex/inline-learning` adds an enabled-by-default “Allow quick questions inline” checkbox, setup previews, a bounded quiz/prediction card, answer-preserving expansion and a session-content stack. Browser checks use a synthetic MCP Apps host. Real Codex/Claude acceptance and a new live learning evaluation have not been completed for this branch. Main publication distributes this as early access after required checks; it does not establish full native acceptance. See [the design and acceptance notes](design/INLINE_LEARNING.md).

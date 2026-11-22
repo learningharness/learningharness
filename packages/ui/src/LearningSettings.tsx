@@ -1,3 +1,4 @@
+import {InlinePreference} from './InlinePreference.js';
 import {DEFAULT_USAGE_LIMITS} from '../../runtime/src/default-limits.js';
 import {createSignal,createUniqueId,For,Show} from 'solid-js';
 import {LearnerContext} from './LearnerContext.js';
@@ -18,6 +19,7 @@ export function LearningSettings(props:{initialSection?:string;state:any;session
   <Show when={section()==='Preferences'}><div class="lh-settings-section"><div class="lh-setting-row"><div><h2>Learning mode</h2><p>On carries across coding chats and restarts. Each chat keeps its own history. Pause one chat under Advanced.</p></div><button class="lh-switch" role="switch" aria-label="Learning mode" aria-checked={!!props.state?.enabled} disabled={props.busy} onClick={()=>void save(props.state?.enabled?'disable':'enable')}>{props.state?.enabled?'On':'Off'}</button></div>
    <Show when={props.state?.capabilities?.host==='claude'}><div class="lh-session-launcher"><div><h2>Session launcher</h2><p>Ask Claude to show a reusable Learn launcher once in each new chat. Claude may need a tool call, and opening Learn may require expanding its view.</p></div><label class="lh-session-launcher-toggle" for={launcherId}><input id={launcherId} type="checkbox" checked={props.state?.settings?.showSessionLauncher===true} disabled={props.busy} onChange={e=>void save('set-session-launcher',e.currentTarget.checked)}/><span>Show the launcher for every new session</span></label></div></Show>
    <label class="lh-field">How often should I offer something?<select value={props.state?.settings?.sensitivity??'learn-balanced'} onChange={e=>void save('set-sensitivity',e.currentTarget.value)}><For each={[['learn-rarely','Rarely'],['learn-occasionally','Occasionally'],['learn-balanced','Balanced'],['learn-regularly','Regularly'],['learn-often','Often']]}>{([v,label])=><option value={v}>{label}</option>}</For></select></label><p class="lh-help">Offers follow the work and your learning goals. You choose when to explore.</p>
+   <InlinePreference value={props.state?.settings?.allowInline!==false} disabled={props.busy} onChange={value=>void save('set-inline-questions',value)}/>
    <ReminderSettings value={props.state?.settings?.reengagement} busy={props.busy} save={save}/>
    <div class="lh-setting-note"><strong>Your agent’s connection. Your local memory.</strong><p>Learning uses your existing model allowance. Selected work goes to that model; no LearningHarness backend receives your code.</p></div>
   </div></Show>

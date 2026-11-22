@@ -1,9 +1,10 @@
+import {uiResource} from './ui-resource.mjs';
 import {desktopLaunch} from './desktop-launch.mjs';
 import {randomUUID} from 'node:crypto';
 import {readFileSync,writeFileSync,renameSync,openSync,closeSync} from 'node:fs';
 import {join} from 'node:path';
 import {validSessionId} from '../../packages/hosts/src/native-host.js';
-export const startupUri='ui://learning-harness/v19/startup';
+export const startupUri=uiResource(process.env.LEARNING_HARNESS_HOST??'codex','startup');
 export const startupSignal='LearningHarness has a startup invitation for this chat. Call the show_startup_invitation launcher tool once to display its Open and Dismiss controls. This is a UI-only control; continue the coding task independently. Do not open or expand Learn, enable learning, or repeat the invitation automatically.';
 const file=(dir,id)=>{if(!validSessionId(id))throw Error('Exact chat identity required');return join(dir,'startup-'+id+'.json');};
 function record(dir,id){try{return JSON.parse(readFileSync(file(dir,id),'utf8'));}catch(e){if(e.code==='ENOENT')return null;throw e;}}
