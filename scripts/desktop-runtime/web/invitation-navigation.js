@@ -33,3 +33,9 @@ export function inlineFrameAfterContext(previousInline,context,{source='host-con
  if(context?.displayMode==='fullscreen')return false;
  return previousInline;
 }
+
+// Rendering an already prepared short question is not consent to generate,
+// expand a sidebar, or submit a learner response.
+export function shouldAutoOpenQuickQuestion({invitation,inlineFrame,inlineEligible,allowInline,enabled,paused,globallyStopped,pendingExpansion}){
+ return invitation===true&&inlineFrame===true&&inlineEligible===true&&allowInline===true&&enabled===true&&!paused&&!globallyStopped&&!pendingExpansion;
+}

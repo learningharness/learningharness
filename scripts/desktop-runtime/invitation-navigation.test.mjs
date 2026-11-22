@@ -58,3 +58,9 @@ test('request replies cannot change placement, but real same-frame context chang
  assert.equal(inlineFrameAfterContext(true,{displayMode:'fullscreen'}),false);
  assert.equal(inlineFrameAfterContext(false,{displayMode:'inline'}),true);
 });
+test('only ready enabled inline questions open automatically, never full experiences or sidebar frames',async()=>{
+ const {shouldAutoOpenQuickQuestion}=await import('./web/invitation-navigation.js');
+ const ready={invitation:true,inlineFrame:true,inlineEligible:true,allowInline:true,enabled:true,paused:false,globallyStopped:false,pendingExpansion:false};
+ assert.equal(shouldAutoOpenQuickQuestion(ready),true);
+ for(const change of [{invitation:false},{inlineFrame:false},{inlineEligible:false},{inlineEligible:undefined},{allowInline:false},{enabled:false},{paused:true},{globallyStopped:true},{pendingExpansion:true}])assert.equal(shouldAutoOpenQuickQuestion({...ready,...change}),false,JSON.stringify(change));
+});
